@@ -7,9 +7,9 @@ import torch.nn.functional as F
 
 class AdaptiveTripletMarginLoss(nn.Module):
     """
-    Triplet Margin Loss con margine per-sample margin_alpha di shape (B,),
-    stabilità numerica sul calcolo della distanza euclidea a distanza zero
-    e regolarizzazione opzionale della varianza latente anti-collasso.
+    Triplet Margin Loss with per-sample margin_alpha of shape (B,),
+    numerical stability for Euclidean distance near zero,
+    and optional anti-collapse latent variance regularization.
     """
 
     def __init__(
@@ -31,11 +31,11 @@ class AdaptiveTripletMarginLoss(nn.Module):
         margin_alpha: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
-        Calcola la Triplet Margin Loss adattiva per ciascun elemento del batch.
-        Restituisce (loss, stats) dove loss è scalare differenziabile.
+        Compute the adaptive Triplet Margin Loss for each element in the batch.
+        Returns (loss, stats) where loss is a differentiable scalar.
         """
         assert z_A.ndim == 2 and z_A.shape == z_P.shape == z_N.shape, (
-            f"Shape embedding incompatibili: A={tuple(z_A.shape)}, P={tuple(z_P.shape)}, N={tuple(z_N.shape)}."
+            f"Incompatible embedding shapes: A={tuple(z_A.shape)}, P={tuple(z_P.shape)}, N={tuple(z_N.shape)}."
         )
         margins = margin_alpha.to(device=z_A.device, dtype=z_A.dtype).view(-1)
         assert margins.shape[0] == z_A.shape[0], (

@@ -70,14 +70,14 @@ def test_rodrigues_subtree_preserves_bone_lengths() -> None:
     g_rot = build_pyg_graph(p_rot, meta, graph_cfg)
 
     lengths_diff = torch.abs(g_orig.edge_attr[:, 3] - g_rot.edge_attr[:, 3]).max().item()
-    assert lengths_diff < 1e-5, f"Lunghezze ossee alterate dopo Rodrigues: max_diff={lengths_diff}"
+    assert lengths_diff < 1e-5, f"Bone lengths altered after Rodrigues rotation: max_diff={lengths_diff}"
 
     directed_edges = get_directed_edge_list(graph_cfg)
     left_hip_edge_idx = directed_edges.index((4, 5))
     cos_before = float(g_orig.edge_attr[left_hip_edge_idx, 4].item())
     cos_after = float(g_rot.edge_attr[left_hip_edge_idx, 4].item())
     assert abs(cos_before - cos_after) > 1e-2, (
-        f"Atteso cambio significativo dell'angolo all'anca SX: prima={cos_before}, dopo={cos_after}"
+        f"Expected significant angle change at left hip: before={cos_before}, after={cos_after}"
     )
 
 

@@ -22,12 +22,12 @@ def build_pyg_graph(
     graph_cfg: Dict[str, Any],
 ) -> Data:
     """
-    Costruisce e valida un oggetto torch_geometric.data.Data completo.
-    Preserva sempre le coordinate canoniche 3D in data.pos (17, 3) anche in modalità extended.
+    Build and validate a complete torch_geometric.data.Data object.
+    Always preserves 3D canonical coordinates in data.pos (17, 3), even in extended mode.
     """
     coords = np.asarray(P_bar, dtype=np.float32)
     assert coords.shape == (17, 3) and np.isfinite(coords).all(), (
-        f"P_bar non valido per build_pyg_graph: shape={coords.shape}"
+        f"Invalid P_bar for build_pyg_graph: shape={coords.shape}"
     )
 
     x = compute_node_features(coords, graph_cfg)
@@ -71,9 +71,9 @@ def process_and_save_dataset_graphs(
     graph_cfg: Dict[str, Any],
 ) -> Dict[str, List[Data]]:
     """
-    Esegue extract_stable_window -> canonicalize_window_3d -> build_pyg_graph
-    per tutti i campioni, salva train_graphs.pt, val_graphs.pt, test_graphs.pt
-    in data/processed/ e restituisce {'train': [...], 'val': [...], 'test': [...]}.
+    Run extract_stable_window -> canonicalize_window_3d -> build_pyg_graph
+    for all samples, save train_graphs.pt, val_graphs.pt, test_graphs.pt
+    into data/processed/, and return {'train': [...], 'val': [...], 'test': [...]}.
     """
     sample_to_split: Dict[str, str] = {}
     for split_name in ("train", "val", "test"):

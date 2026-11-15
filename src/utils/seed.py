@@ -5,7 +5,7 @@ import torch
 
 
 def seed_everything(seed: int = 42) -> None:
-    """Fissa il seed globale per Python, NumPy e PyTorch (CPU e CUDA)."""
+    """Set global random seed for Python, NumPy, and PyTorch (CPU and CUDA)."""
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)

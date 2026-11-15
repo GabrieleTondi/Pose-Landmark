@@ -10,12 +10,12 @@ from src.training.triplet_sampler import resolve_class_thresholds
 
 def rodrigues_rotation_matrix(axis: np.ndarray, angle_rad: float) -> np.ndarray:
     """
-    Calcola la matrice di rotazione 3x3 in SO(3) attorno al vettore 'axis' di un angolo 'angle_rad'
-    usando la formula di Rodrigues: R = I + sin(theta)*K + (1 - cos(theta))*(K @ K).
-    Restituisce un np.ndarray di shape (3, 3) float32.
+    Compute the 3x3 rotation matrix in SO(3) around vector 'axis' by angle 'angle_rad'
+    using Rodrigues' rotation formula: R = I + sin(theta)*K + (1 - cos(theta))*(K @ K).
+    Returns an np.ndarray of shape (3, 3) float32.
     """
     u = np.asarray(axis, dtype=np.float64)
-    assert u.shape == (3,), f"Atteso axis di shape (3,), trovata {u.shape}."
+    assert u.shape == (3,), f"Expected axis of shape (3,), got {u.shape}."
     norm = float(np.linalg.norm(u))
     if norm < 1e-8:
         return np.eye(3, dtype=np.float32)
@@ -47,13 +47,13 @@ def rotate_kinematic_subtree(
     graph_cfg: Dict[str, Any],
 ) -> np.ndarray:
     """
-    Ruota rigidamente attorno al punto perno P_bar[joint_idx] tutti i nodi appartenenti al
-    sotto-albero kinematic_subtrees[f"{joint_idx}->{child_idx}"] di 'angle_deg' gradi.
-    Restituisce la nuova matrice P_prime di shape (17, 3) float32 con lunghezze ossee invariate.
+    Rigidly rotate all nodes belonging to the subtree
+    kinematic_subtrees[f"{joint_idx}->{child_idx}"] around pivot P_bar[joint_idx] by 'angle_deg' degrees.
+    Returns the new matrix P_prime of shape (17, 3) float32 with unchanged bone lengths.
     """
     pose = np.asarray(P_bar, dtype=np.float32)
     assert pose.shape == (17, 3) and np.isfinite(pose).all(), (
-        f"Atteso P_bar finito di shape (17, 3), trovata {pose.shape}."
+        f"Expected finite P_bar of shape (17, 3), got {pose.shape}."
     )
 
     p_idx = int(joint_idx)
@@ -74,14 +74,14 @@ def rotate_kinematic_subtree(
 
 def _select_weighted_subtree_keys(graph_cfg: Dict[str, Any]) -> Tuple[List[str], np.ndarray]:
     """
-    Privilegia dinamicamente le articolazioni degli arti inferiori e superiori rispetto al tronco,
-    leggendo i nomi dei giunti da graph_cfg senza hardcodare indici coco17/h36m17.
+    Dynamically prioritize lower- and upper-limb joints over the trunk,
+    reading joint names from graph_cfg without hardcoding coco17/h36m17 indices.
     """
     subtrees = graph_cfg["kinematic_subtrees"]
     joint_names = graph_cfg.get("joint_names", {})
     keys = list(subtrees.keys())
     if len(keys) == 0:
-        raise ValueError("graph_cfg['kinematic_subtrees'] non può essere vuoto.")
+        raise ValueError("graph_cfg['kinematic_subtrees'] cannot be empty.")
 
     weights: List[float] = []
     for key in keys:
@@ -108,7 +108,7 @@ def _orthogonal_unit_axis(
     child_idx: int,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Genera un asse unitario ortogonale all'osso pose[child_idx] - pose[joint_idx]."""
+    """Generate a unit axis orthogonal to the bone pose[child_idx] - pose[joint_idx]."""
     bone_vec = (pose[child_idx] - pose[joint_idx]).astype(np.float64)
     norm = float(np.linalg.norm(bone_vec))
     if norm < 1e-6:
@@ -135,7 +135,7 @@ def _select_positive_sources_for_augmentation(
     real_train_graphs: List[Data],
     train_cfg: Dict[str, Any],
 ) -> List[Data]:
-    """Seleziona i grafi reali positivi del training set da cui generare negativi sintetici."""
+    """Select real positive graphs from the training set to generate synthetic negatives."""
     abs_pos = float(train_cfg["sampling"].get("goe_pos_threshold", 1.5))
     abs_neg = float(train_cfg["sampling"].get("goe_neg_threshold", 0.0))
 
@@ -164,16 +164,16 @@ def generate_synthetic_negatives(
     train_cfg: Dict[str, Any],
 ) -> List[Data]:
     """
-    Per ogni grafo reale positivo del SOLO training set (split == 'train' e not is_augmented),
-    genera i grafi negativi sintetici (di default 3, uno per ciascun severity_tier 1, 2, 3)
-    e restituisce la lista dei nuovi oggetti Data sintetici.
+    For each real positive graph in the training set ONLY (split == 'train' and not is_augmented),
+    generate synthetic negative graphs (default 3, one per severity_tier 1, 2, 3)
+    and return the list of new synthetic Data objects.
     """
     for g in train_graphs:
         split_val = str(getattr(g, "split", ""))
         if split_val != "train":
             raise ValueError(
-                f"Data leakage bloccato: generate_synthetic_negatives accetta solo grafi "
-                f"con split == 'train', trovato split='{split_val}' ({getattr(g, 'sample_id', 'unknown')})."
+                f"Data leakage blocked: generate_synthetic_negatives only accepts graphs "
+                f"with split == 'train', found split='{split_val}' ({getattr(g, 'sample_id', 'unknown')})."
             )
 
     aug_cfg = train_cfg.get("augmentation", {})

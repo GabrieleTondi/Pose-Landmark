@@ -4,7 +4,7 @@ model:
   hidden_dim: 32
   embed_dim: 32
   heads: 4
-  dropout: 0.0                    # Validato su FineFS val: dropout > 0 induce collasso latente su triplette Siamesi 17-nodi
+  dropout: 0.0                    # Validated on FineFS val: dropout > 0 induces latent collapse on 17-node Siamese triplets
   normalize_embeddings: false
 
 training:
@@ -20,7 +20,7 @@ training:
   num_test_triplets: 200
 
 sampling:
-  tier_rule: "threshold"          # "threshold" (con fallback automatico a "quantile" se pool < 5)
+  tier_rule: "threshold"          # "threshold" (with automatic fallback to "quantile" if pool < 5)
   goe_pos_threshold: 1.5
   goe_neg_threshold: 0.0
   goe_pos_quantile: 0.70
@@ -28,12 +28,12 @@ sampling:
   max_pos_goe_diff: 1.5
   min_neg_goe_gap: 1.5
   real_negative_prob: 0.70
-  positive_top_k: 8               # Solo su train: seleziona P tra i K positivi più affini per evitare conflitti di variante
-  self_synth_prob: 0.20           # Riduce sovra-campionamento di self-negativi rispetto ai cross-negativi
+  positive_top_k: 8               # Train only: selects P among the K closest positives to avoid variant conflicts
+  self_synth_prob: 0.20           # Reduces oversampling of self-negatives relative to cross-negatives
 
 augmentation:
   enabled: true
-  num_synthetic_per_positive: 3   # 1 per ciascun tier (1=lieve, 2=medio, 3=grave)
+  num_synthetic_per_positive: 3   # 1 per tier (1=mild, 2=medium, 3=severe)
   noise_std: 0.005
   tier_angle_ranges_deg:
     1: [8.0, 15.0]
@@ -41,12 +41,12 @@ augmentation:
     3: [29.0, 42.0]
 
 loss:
-  margin_mode: "adaptive"         # "adaptive" oppure "fixed"
+  margin_mode: "adaptive"         # "adaptive" or "fixed"
   fixed_margin: 0.50
   adaptive_margins:
     1: 0.20
     2: 0.60
     3: 1.00
-  var_reg_weight: 0.35            # Regolarizzazione anti-collasso della deviazione standard latente (solo training)
+  var_reg_weight: 0.35            # Anti-collapse regularization on latent standard deviation (training only)
   var_reg_target: 1.0
 

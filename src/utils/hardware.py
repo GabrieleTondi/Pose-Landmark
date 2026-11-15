@@ -5,7 +5,7 @@ import torch
 
 
 def get_compute_device(prefer_gpu: bool = True) -> torch.device:
-    """Restituisce torch.device('cuda') se disponibile e funzionante, altrimenti torch.device('cpu')."""
+    """Return torch.device('cuda') if available and working, otherwise torch.device('cpu')."""
     if prefer_gpu and torch.cuda.is_available():
         try:
             a = torch.ones((2, 2), device="cuda")
@@ -14,7 +14,7 @@ def get_compute_device(prefer_gpu: bool = True) -> torch.device:
             return torch.device("cuda")
         except Exception as exc:
             warnings.warn(
-                f"CUDA disponibile ma micro-test GPU fallito ({exc}); fallback su CPU.",
+                f"CUDA available but GPU micro-test failed ({exc}); falling back to CPU.",
                 RuntimeWarning,
                 stacklevel=2,
             )
@@ -23,7 +23,7 @@ def get_compute_device(prefer_gpu: bool = True) -> torch.device:
 
 
 def get_hardware_profile() -> Dict[str, Any]:
-    """Restituisce un dizionario serializzabile JSON con i dettagli CPU/GPU/VRAM/CUDA."""
+    """Return a JSON-serializable dictionary with CPU/GPU/VRAM/CUDA details."""
     cuda_ok = bool(torch.cuda.is_available())
     device_name = "CPU"
     total_vram_mb = 0.0
@@ -39,7 +39,7 @@ def get_hardware_profile() -> Dict[str, Any]:
             )
         except Exception as exc:
             warnings.warn(
-                f"Impossibile leggere proprietà GPU CUDA ({exc}); report fallback CPU.",
+                f"Unable to read CUDA GPU properties ({exc}); reporting CPU fallback.",
                 RuntimeWarning,
                 stacklevel=2,
             )
@@ -58,7 +58,7 @@ def get_hardware_profile() -> Dict[str, Any]:
 
 
 def get_vram_usage_mb() -> Dict[str, float]:
-    """Restituisce {'allocated_mb': ..., 'reserved_mb': ..., 'max_allocated_mb': ...} (0.0 se su CPU)."""
+    """Return {'allocated_mb': ..., 'reserved_mb': ..., 'max_allocated_mb': ...} (0.0 on CPU)."""
     if not torch.cuda.is_available():
         return {
             "allocated_mb": 0.0,

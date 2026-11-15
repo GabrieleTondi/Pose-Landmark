@@ -10,7 +10,7 @@ from src.utils.seed import seed_everything
 
 
 def _sample_simple_edge_index(num_nodes: int, num_edges: int, device: torch.device) -> torch.Tensor:
-    """Genera edge_index dummy (2, num_edges) privo di self-loop espliciti."""
+    """Generate dummy edge_index (2, num_edges) without explicit self-loops."""
     src = torch.randint(0, num_nodes, (num_edges,), dtype=torch.long, device=device)
     dst = torch.randint(0, num_nodes, (num_edges,), dtype=torch.long, device=device)
     dst = torch.where(dst == src, (dst + 1) % num_nodes, dst)
@@ -18,7 +18,7 @@ def _sample_simple_edge_index(num_nodes: int, num_edges: int, device: torch.devi
 
 
 def main() -> None:
-    """Esegue lo smoke test completo di determinismo, config YAML, device e GATv2Conv PyG."""
+    """Run full smoke test for determinism, YAML configs, device selection, and PyG GATv2Conv."""
     seed_everything(42)
     cfgs = load_all_configs("configs")
     assert set(cfgs.keys()) == {"data", "graph", "training"}
@@ -49,14 +49,14 @@ def main() -> None:
         x, edge_index, edge_attr=edge_attr, return_attention_weights=True
     )
 
-    assert out.shape == (17, 128), f"Attesa shape out (17, 128), trovata {tuple(out.shape)}"
+    assert out.shape == (17, 128), f"Expected out shape (17, 128), got {tuple(out.shape)}"
     assert edge_idx_attn.shape == (2, 49), (
-        f"Attesa shape edge_idx_attn (2, 49), trovata {tuple(edge_idx_attn.shape)}"
+        f"Expected edge_idx_attn shape (2, 49), got {tuple(edge_idx_attn.shape)}"
     )
-    assert alpha.shape == (49, 4), f"Attesa shape alpha (49, 4), trovata {tuple(alpha.shape)}"
+    assert alpha.shape == (49, 4), f"Expected alpha shape (49, 4), got {tuple(alpha.shape)}"
 
     out.sum().backward()
-    assert x.grad is not None, "Il gradiente rispetto a x non deve essere None."
+    assert x.grad is not None, "Gradient with respect to x must not be None."
 
     print("ENV_CHECK_OK")
 

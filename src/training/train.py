@@ -25,7 +25,7 @@ def train_one_epoch(
     device: torch.device,
     max_grad_norm: float = 1.0,
 ) -> Dict[str, float]:
-    """Esegue un'epoca di addestramento su triplette PyG con gradient clipping."""
+    """Run one training epoch on PyG triplets with gradient clipping."""
     model.train()
     totals = {
         "loss": 0.0,
@@ -55,7 +55,7 @@ def train_one_epoch(
             totals[key] += float(stats[key]) * bs
 
     if total_triplets == 0:
-        raise RuntimeError("Il DataLoader di training non ha prodotto alcuna tripletta.")
+        raise RuntimeError("Training DataLoader produced zero triplets.")
 
     return {key: val / float(total_triplets) for key, val in totals.items()}
 
@@ -67,7 +67,7 @@ def evaluate_triplets(
     criterion: AdaptiveTripletMarginLoss,
     device: torch.device,
 ) -> Dict[str, float]:
-    """Valuta il modello in modalità eval e monitora la dispersione latente (anti-collasso)."""
+    """Evaluate the model in eval mode and monitor latent dispersion (anti-collapse)."""
     model.eval()
     totals = {
         "loss": 0.0,
@@ -95,7 +95,7 @@ def evaluate_triplets(
         collected_z_a.append(z_A.detach().cpu())
 
     if total_triplets == 0:
-        raise RuntimeError("Il DataLoader di validazione non ha prodotto alcuna tripletta.")
+        raise RuntimeError("Validation DataLoader produced zero triplets.")
 
     all_z = torch.cat(collected_z_a, dim=0)
     embedding_std = float(torch.std(all_z, dim=0).mean().item()) if all_z.shape[0] > 1 else 0.0
@@ -138,8 +138,8 @@ def run_training_pipeline(
     train_cfg: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Esegue l'intera pipeline di addestramento: augmentation sul solo train,
-    partizionamento per GOE, validazione deterministica, early stopping e salvataggio best_model.pt.
+    Run the full training pipeline: train-only augmentation,
+    GOE tier partitioning, deterministic validation, early stopping, and saving best_model.pt.
     """
     t_cfg = train_cfg["training"]
     seed = int(t_cfg.get("seed", 42))
@@ -266,7 +266,7 @@ def run_training_pipeline(
 
 
 def main() -> None:
-    """Entrypoint CLI: carica i grafi da data/processed/ (o genera mock fallback) e avvia il training."""
+    """CLI entrypoint: load graphs from data/processed/ (or generate mock fallback) and start training."""
     cfgs = load_all_configs("configs")
     data_cfg = cfgs["data"]
     graph_cfg = cfgs["graph"]

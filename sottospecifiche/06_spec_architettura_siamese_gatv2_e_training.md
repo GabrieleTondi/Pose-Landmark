@@ -1,23 +1,23 @@
-# 06 — Sottospecifica di Settore: Architettura Siamese GATv2 e Training
+# 06 — Sector Sub-Specification: Siamese GATv2 Architecture and Training
 
-**Settore:** 06 — Deep Learning Model: `GATv2Encoder`, `SiameseGATv2`, Regolarizzazione e Training Loop  
-**Riferimenti Specifica Madre:** §7.1–§7.5, §16.4  
-**Dipendenze in ingresso:** Settore 04 (Grafi PyG), Settore 05 (`TripletDataset`, `AdaptiveTripletMarginLoss`), `configs/training.yaml`  
-**Output abilitati:** Settore 07 (Valutazione, Prototipi e Explainability) e Settore 08 (UI 3D e What-If Lab)
-
----
-
-## 1. Obiettivo del Settore
-
-Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wrapper a pesi condivisi `SiameseGATv2` (`src/models/siamese_gat.py`) e la pipeline di addestramento con validazione deterministica, controllo anti-collasso e salvataggio del miglior checkpoint (`src/training/train.py`).
+**Sector:** 06 — Deep Learning Model: `GATv2Encoder`, `SiameseGATv2`, Regularization, and Training Loop  
+**Parent Specification References:** §7.1–§7.5, §16.4  
+**Input Dependencies:** Sector 04 (PyG Graphs), Sector 05 (`TripletDataset`, `AdaptiveTripletMarginLoss`), `configs/training.yaml`  
+**Enabled Outputs:** Sector 07 (Evaluation, Prototypes, and Explainability) and Sector 08 (3D UI and What-If Lab)
 
 ---
 
-## 2. Decomposizione in Sotto-Task Espliciti
+## 1. Sector Objective
 
-### Task 6.1 — Implementazione di `GATv2Encoder` (`src/models/encoder.py`)
-- **File da creare:** `src/models/encoder.py`
-- **Contratto esatto della classe:**
+Implement the neural model `GATv2Encoder` (`src/models/encoder.py`), the shared-weight wrapper `SiameseGATv2` (`src/models/siamese_gat.py`), and the training pipeline with deterministic validation, anti-collapse monitoring, and best checkpoint saving (`src/training/train.py`).
+
+---
+
+## 2. Decomposition into Explicit Sub-Tasks
+
+### Task 6.1 — Implementation of `GATv2Encoder` (`src/models/encoder.py`)
+- **File to create:** `src/models/encoder.py`
+- **Exact class contract:**
   ```python
   from typing import Optional, Tuple, Dict, Union
   import torch
@@ -46,7 +46,7 @@ Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wra
           return_attention_weights: bool = False
       ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Tuple[torch.Tensor, torch.Tensor]]]]: ...
   ```
-- **COME implementare `__init__` e `forward` di `GATv2Encoder` (Codice esatto):**
+- **HOW to implement `__init__` and `forward` of `GATv2Encoder` (Exact code):**
   ```python
   class GATv2Encoder(nn.Module):
       def __init__(
@@ -133,13 +133,13 @@ Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wra
               return z, {"layer1": (e_idx1, alpha1), "layer2": (e_idx2, alpha2)}
           return z
   ```
-- **CONSTRAINT:** Non usare mai `nn.BatchNorm1d` (usare `nn.LayerNorm`) così che l'inferenza su un singolo grafo (`B=1`, 17 nodi) funzioni senza dipendere da statistiche di running mean/var.
+- **CONSTRAINT:** Never use `nn.BatchNorm1d` (use `nn.LayerNorm`) so that inference on a single graph (`B=1`, 17 nodes) works without depending on running mean/var statistics.
 
 ---
 
-### Task 6.2 — Implementazione di `SiameseGATv2` (`src/models/siamese_gat.py`)
-- **File da creare:** `src/models/siamese_gat.py`
-- **Contratto esatto della classe:**
+### Task 6.2 — Implementation of `SiameseGATv2` (`src/models/siamese_gat.py`)
+- **File to create:** `src/models/siamese_gat.py`
+- **Exact class contract:**
   ```python
   from typing import Tuple, Dict, Any, Union
   import torch
@@ -200,13 +200,13 @@ Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wra
           z_2 = self.encode(data_2, return_attention_weights=False)
           return torch.sqrt(torch.sum((z_1 - z_2) ** 2, dim=-1) + 1e-12)
   ```
-- **CONSTRAINT:** Deve esistere **una sola istanza** `self.encoder`. Non clonare o istanziare mai tre encoder distinti.
+- **CONSTRAINT:** There must be **a single instance** `self.encoder`. Never clone or instantiate three separate encoders.
 
 ---
 
-### Task 6.3 — Pipeline di Training e Validazione (`src/training/train.py`)
-- **File da creare:** `src/training/train.py`
-- **Contratti esatti delle funzioni:**
+### Task 6.3 — Training and Validation Pipeline (`src/training/train.py`)
+- **File to create:** `src/training/train.py`
+- **Exact function contracts:**
   ```python
   from pathlib import Path
   from typing import Dict, Any, List
@@ -241,33 +241,33 @@ Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wra
       train_cfg: Dict[str, Any]
   ) -> Dict[str, Any]: ...
   ```
-- **COME implementare `train_one_epoch` ed `evaluate_triplets`:**
+- **HOW to implement `train_one_epoch` and `evaluate_triplets`:**
   1. In `train_one_epoch`:
-     - Impostare `model.train()`.
-     - Per ogni `batch_A, batch_P, batch_N, batch_alpha` in `loader`:
-       - Spostare su device: `batch_A = batch_A.to(device)`, `batch_P = batch_P.to(device)`, `batch_N = batch_N.to(device)`, `batch_alpha = batch_alpha.to(device)`.
+     - Set `model.train()`.
+     - For each `batch_A, batch_P, batch_N, batch_alpha` in `loader`:
+       - Move to device: `batch_A = batch_A.to(device)`, `batch_P = batch_P.to(device)`, `batch_N = batch_N.to(device)`, `batch_alpha = batch_alpha.to(device)`.
        - `optimizer.zero_grad()`
        - `z_A, z_P, z_N = model.forward_triplet(batch_A, batch_P, batch_N)`
        - `loss, stats = criterion(z_A, z_P, z_N, batch_alpha)`
        - `loss.backward()`
        - `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)`
        - `optimizer.step()`
-     - Calcolare la media pesata sul numero di triplette di `loss`, `triplet_acc`, `margin_satisfied_acc`, `mean_d_ap`, `mean_d_an`.
+     - Compute the weighted average over the number of triplets of `loss`, `triplet_acc`, `margin_satisfied_acc`, `mean_d_ap`, `mean_d_an`.
   2. In `evaluate_triplets`:
-     - Impostare `model.eval()`.
-     - Iterare sul `loader` di validazione raccogliendo anche tutti gli embedding `z_A` per calcolare la deviazione standard media delle coordinate latenti:
+     - Set `model.eval()`.
+     - Iterate over the validation `loader` while also collecting all embeddings `z_A` to compute the mean standard deviation of the latent coordinates:
        ```python
        all_z = torch.cat(collected_z_A, dim=0)
        embedding_std = float(torch.std(all_z, dim=0).mean().item())
        ```
-     - Restituire il dizionario con `val_loss`, `val_triplet_acc`, `val_margin_satisfied_acc`, `val_mean_d_ap`, `val_mean_d_an`, `embedding_std`.
+     - Return the dictionary with `val_loss`, `val_triplet_acc`, `val_margin_satisfied_acc`, `val_mean_d_ap`, `val_mean_d_an`, `embedding_std`.
   3. In `run_training_pipeline`:
-     - Generare i negativi sintetici sul solo `train_graphs` tramite `generate_synthetic_negatives`.
-     - Costruire `train_pools, thresholds = partition_by_goe_tiers(train_graphs + synth_graphs, train_cfg, fit_thresholds=None)`.
-     - Costruire `val_pools, _ = partition_by_goe_tiers(val_graphs, train_cfg, fit_thresholds=thresholds)`.
-     - Creare `val_ds = TripletDataset(val_pools, train_cfg, num_triplets=num_val_triplets, split="val", seed=seed)` una sola volta fuori dal ciclo delle epoche.
-     - Ad ogni epoca $e$, ricreare `train_ds = TripletDataset(train_pools, train_cfg, num_triplets=num_train_triplets, split="train", seed=seed + e)` per campionare nuove combinazioni di triplette di training.
-     - Salvare `checkpoints/best_model.pt` ogni volta che `val_triplet_acc` migliora (o a parità di `val_triplet_acc` quando `val_loss` diminuisce):
+     - Generate synthetic negatives on `train_graphs` only via `generate_synthetic_negatives`.
+     - Build `train_pools, thresholds = partition_by_goe_tiers(train_graphs + synth_graphs, train_cfg, fit_thresholds=None)`.
+     - Build `val_pools, _ = partition_by_goe_tiers(val_graphs, train_cfg, fit_thresholds=thresholds)`.
+     - Create `val_ds = TripletDataset(val_pools, train_cfg, num_triplets=num_val_triplets, split="val", seed=seed)` once outside the epoch loop.
+     - At each epoch $e$, recreate `train_ds = TripletDataset(train_pools, train_cfg, num_triplets=num_train_triplets, split="train", seed=seed + e)` to sample new combinations of training triplets.
+     - Save `checkpoints/best_model.pt` whenever `val_triplet_acc` improves (or on a tie in `val_triplet_acc`, when `val_loss` decreases):
        ```python
        torch.save({
            "epoch": epoch,
@@ -280,20 +280,20 @@ Implementare il modello neurale `GATv2Encoder` (`src/models/encoder.py`), il wra
            "data_cfg": data_cfg
        }, ckpt_path)
        ```
-     - Salvare la lista delle metriche per epoca in `reports/training_history.json`.
+     - Save the list of per-epoch metrics to `reports/training_history.json`.
 
 ---
 
-## 3. Unit Test da Implementare (in `tests/test_triplets.py`)
+## 3. Unit Tests to Implement (in `tests/test_triplets.py`)
 
-Aggiungere a `tests/test_triplets.py` i seguenti 3 test sul modello e sul training:
-1. `test_siamese_shared_weights_and_edge_attr_sensitivity()`: verifica che `len(list(model.parameters())) == len(list(model.encoder.parameters()))` e che cambiando `data.edge_attr` a parità di `data.x` l'embedding restituito da `model.encode(data)` cambi (`not torch.allclose(z1, z2)`).
-2. `test_attention_weights_extraction_shape()`: verifica che per un grafo singolo ($B=1$, 17 nodi, 32 archi) `z, attn = model.encode(data, return_attention_weights=True)` restituisca `attn["layer2"][1].shape == (49, 4)`.
-3. `test_single_batch_overfit()`: prende 16 triplette fisse, esegue 35 step di `train_one_epoch` con `lr=5e-3` e verifica che la loss finale sia $< 0.15$ e che `triplet_acc >= 0.90`.
+Add the following 3 tests on the model and training to `tests/test_triplets.py`:
+1. `test_siamese_shared_weights_and_edge_attr_sensitivity()`: verifies that `len(list(model.parameters())) == len(list(model.encoder.parameters()))` and that changing `data.edge_attr` while keeping `data.x` fixed changes the embedding returned by `model.encode(data)` (`not torch.allclose(z1, z2)`).
+2. `test_attention_weights_extraction_shape()`: verifies that for a single graph ($B=1$, 17 nodes, 32 edges) `z, attn = model.encode(data, return_attention_weights=True)` returns `attn["layer2"][1].shape == (49, 4)`.
+3. `test_single_batch_overfit()`: takes 16 fixed triplets, runs 35 steps of `train_one_epoch` with `lr=5e-3`, and verifies that the final loss is $< 0.15$ and `triplet_acc >= 0.90`.
 
 ---
 
-## 4. Criteri di Accettazione del Settore 06 (Definition of Done)
+## 4. Sector 06 Acceptance Criteria (Definition of Done)
 
-- [ ] I file `src/models/encoder.py`, `src/models/siamese_gat.py` e `src/training/train.py` sono stati creati.
-- [ ] Tutti i test in `pytest tests/test_triplets.py` passano al 100%.
+- [ ] The files `src/models/encoder.py`, `src/models/siamese_gat.py`, and `src/training/train.py` have been created.
+- [ ] All tests in `pytest tests/test_triplets.py` pass 100%.

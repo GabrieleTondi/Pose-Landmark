@@ -1,343 +1,338 @@
-# Specifica implementativa
+# Implementation Specification
 
-## Siamese GATv2 per la valutazione della qualità degli elementi nel pattinaggio di figura
+## Siamese GATv2 for Element Quality Assessment in Figure Skating
 
-**Versione:** 1.0\
-**Data:** 11 novembre 2026\
-**Tipo di progetto:** MVP accademico --- Big Data and Deep Learning
-
-------------------------------------------------------------------------
-
-## 1. Scopo e obiettivi
-
-Il progetto mira a realizzare un sistema di *Action Quality Assessment*
-(AQA) per il pattinaggio di figura. Il sistema riceve lo scheletro
-tridimensionale di un atleta durante un elemento tecnico e stima quanto
-la posa osservata sia simile a esecuzioni di riferimento di qualità
-elevata.
-
-L'approccio scelto è una rete neurale a grafo Siamese basata su
-**GATv2**, addestrata con **Triplet Loss**. La rete apprende una
-rappresentazione latente dello scheletro; la distanza tra gli embedding
-dell'esecuzione osservata e di un riferimento costituisce la misura
-primaria di dissimilarità.
-
-Il progetto è un MVP: deve dimostrare la fattibilità della pipeline
-end-to-end su un insieme ristretto di elementi del pattinaggio, non
-realizzare un sistema di giudizio ufficiale utilizzabile in gara.
-
-### 1.1 Obiettivi specifici
-
-1.  Recuperare e analizzare dataset di pattinaggio con scheletri
-    pre-estratti e annotazioni di qualità.
-2.  Definire un formato comune per gli scheletri e per le relative
-    annotazioni.
-3.  Selezionare un piccolo insieme di elementi tecnici sufficientemente
-    rappresentati.
-4.  Canonicalizzare le coordinate 3D per ridurre le differenze dovute a
-    traslazione, scala e orientamento.
-5.  Convertire ogni posa in un grafo con topologia e semantica dei nodi
-    coerenti.
-6.  Addestrare una Siamese GATv2 con triplette di grafi.
-7.  Valutare se la distanza appresa è coerente con la qualità annotata.
-8.  Visualizzare i risultati e, ove possibile, i pesi di attenzione
-    della rete.
-
-### 1.2 Fuori ambito
-
-Non rientrano nell'MVP:
-
--   valutazione completa di un programma di pattinaggio;
--   riconoscimento di tutti gli elementi tecnici;
--   ricostruzione 3D da video multi-camera;
--   generazione automatica di un punteggio ufficiale ISU;
--   inferenza real-time;
--   addestramento di un nuovo pose estimator;
--   generalizzazione dimostrata a tutte le telecamere, condizioni di
-    ripresa e categorie di atleti.
+**Version:** 1.0\
+**Date:** November 11, 2026\
+**Project Type:** Academic MVP --- Big Data and Deep Learning
 
 ------------------------------------------------------------------------
 
-## 2. Decisioni progettuali consolidate
+## 1. Purpose and Objectives
+
+The project aims to build an *Action Quality Assessment* (AQA) system
+for figure skating. The system receives the three-dimensional skeleton
+of an athlete during a technical element and estimates how similar the
+observed pose is to high-quality reference executions.
+
+The chosen approach is a Siamese graph neural network based on
+**GATv2**, trained with **Triplet Loss**. The network learns a latent
+representation of the skeleton; the distance between the embeddings of
+the observed execution and a reference serves as the primary measure of
+dissimilarity.
+
+The project is an MVP: it must demonstrate the feasibility of the
+end-to-end pipeline on a restricted set of skating elements, not build
+an official judging system usable in competition.
+
+### 1.1 Specific Objectives
+
+1.  Retrieve and analyze skating datasets with pre-extracted skeletons
+    and quality annotations.
+2.  Define a common format for skeletons and their annotations.
+3.  Select a small set of sufficiently represented technical elements.
+4.  Canonicalize 3D coordinates to reduce differences due to
+    translation, scale, and orientation.
+5.  Convert each pose into a graph with consistent node topology and
+    semantics.
+6.  Train a Siamese GATv2 with graph triplets.
+7.  Evaluate whether the learned distance is consistent with the
+    annotated quality.
+8.  Visualize the results and, where possible, the network's attention
+    weights.
+
+### 1.2 Out of Scope
+
+The following are outside the scope of the MVP:
+
+-   complete assessment of a full skating program;
+-   recognition of all technical elements;
+-   3D reconstruction from multi-camera video;
+-   automatic generation of an official ISU score;
+-   real-time inference;
+-   training a new pose estimator;
+-   demonstrated generalization across all cameras, filming conditions,
+    and athlete categories.
+
+------------------------------------------------------------------------
+
+## 2. Consolidated Design Decisions
 
   -----------------------------------------------------------------------
-  Aspetto                             Decisione
+  Aspect                              Decision
   ----------------------------------- -----------------------------------
-  Sport                               Pattinaggio di figura
+  Sport                               Figure skating
 
-  Dataset principale                  FineFS
+  Primary dataset                     FineFS
 
-  Dataset integrativo                 MMFS, previa verifica di
-                                      compatibilità
+  Supplementary dataset               MMFS, pending compatibility
+                                      verification
 
-  Rappresentazione                    Scheletro 3D a 17 joint
+  Representation                      17-joint 3D skeleton
 
-  Pose estimator dei dati accademici  HRNet, secondo la descrizione dei
-                                      dataset
+  Academic data pose estimator        HRNet, according to dataset
+                                      descriptions
 
-  Topologia                           Grafo canonico coerente con i 17
-                                      joint
+  Topology                            Canonical graph consistent with the
+                                      17 joints
 
-  Modello                             Siamese GATv2
+  Model                               Siamese GATv2
 
-  Feature degli archi                 Sì, tramite `edge_attr`
+  Edge features                       Yes, via `edge_attr`
 
-  Obiettivo di training               Metric learning
+  Training objective                  Metric learning
 
-  Loss                                Triplet Margin Loss con margine
-                                      adattivo
+  Loss                                Triplet Margin Loss with adaptive
+                                      margin
 
-  Segnale di qualità                  GOE, quando disponibile e
-                                      associabile al singolo elemento
+  Quality signal                      GOE, when available and
+                                      associable with the individual
+                                      element
 
-  Output primario                     Distanza tra embedding
+  Primary output                      Distance between embeddings
 
-  Explainability                      Pesi di attenzione GATv2
+  Explainability                      GATv2 attention weights
 
-  Hardware                            Portatile personale con GPU NVIDIA;
-                                      modello esatto e VRAM da verificare
+  Hardware                            Personal laptop with NVIDIA GPU;
+                                      exact model and VRAM to be verified
 
-  Durata prevista                     14 giorni
+  Expected duration                   14 days
   -----------------------------------------------------------------------
 
-Le decisioni costituiscono la baseline. Le sezioni successive
-specificano come verificarle e implementarle.
+These decisions form the baseline. The following sections specify how to
+verify and implement them.
 
 ------------------------------------------------------------------------
 
-## 3. Dataset e gestione dei dati
+## 3. Datasets and Data Management
 
-### 3.1 FineFS --- dataset principale
+### 3.1 FineFS --- Primary Dataset
 
-**Riferimento:** Fine-grained Figure Skating Dataset (FineFS),
-repository indicato nella revisione:\
+**Reference:** Fine-grained Figure Skating Dataset (FineFS), repository
+indicated in the review:\
 https://github.com/yanliji/FineFS-dataset
 
-Secondo la documentazione esaminata nella revisione, FineFS contiene:
+According to the documentation examined in the review, FineFS contains:
 
--   1.167 esibizioni;
--   sotto-elementi tecnici segmentati con intervalli temporali;
--   punteggi GOE (*Grade of Execution*) associati agli elementi;
--   scheletri 3D a 17 joint, distribuiti in file `.npz`;
--   una raccolta di scheletri indicata nella revisione come circa 828
+-   1,167 performances;
+-   segmented technical sub-elements with time intervals;
+-   GOE (*Grade of Execution*) scores associated with the elements;
+-   17-joint 3D skeletons, distributed in `.npz` files;
+-   a skeleton collection indicated in the review as approximately 828
     MB.
 
-FineFS è il dataset principale perché associa, almeno secondo la
-descrizione disponibile, elementi segmentati, scheletri e valutazioni di
-qualità a livello di elemento.
+FineFS is the primary dataset because it associates, at least according
+to the available description, segmented elements, skeletons, and
+element-level quality evaluations.
 
-**Verifiche obbligatorie prima del training:**
+**Mandatory checks before training:**
 
-1.  Verificare che repository, link di download e file siano ancora
-    accessibili.
-2.  Ispezionare il contenuto di alcuni `.npz`, senza assumere a priori
-    nomi o shape degli array.
-3.  Verificare dimensioni, unità, sistema di riferimento e significato
-    degli assi delle coordinate.
-4.  Verificare se le coordinate sono effettivamente 3D e quale procedura
-    di stima le ha prodotte.
-5.  Ricostruire la relazione tra identificativo dell'esibizione,
-    intervallo temporale, elemento tecnico, scheletro e GOE.
-6.  Verificare se il GOE è associato al singolo sotto-elemento o
-    soltanto a un livello più aggregato.
-7.  Controllare valori mancanti, keypoint non rilevati, duplicati e
-    segmenti vuoti.
+1.  Verify that the repository, download links, and files are still
+    accessible.
+2.  Inspect the contents of several `.npz` files without assuming array
+    names or shapes a priori.
+3.  Verify dimensions, units, reference frame, and coordinate axis
+    conventions.
+4.  Verify whether the coordinates are genuinely 3D and which estimation
+    procedure produced them.
+5.  Reconstruct the relationship between performance ID, time interval,
+    technical element, skeleton, and GOE.
+6.  Verify whether the GOE is associated with the individual sub-element
+    or only at a more aggregated level.
+7.  Check for missing values, undetected keypoints, duplicates, and empty
+    segments.
 
-Non si deve iniziare il training finché la corrispondenza tra scheletro,
-elemento e annotazione non è stata verificata.
+Training must not begin until the correspondence between skeleton,
+element, and annotation has been verified.
 
-### 3.2 MMFS --- dataset integrativo
+### 3.2 MMFS --- Supplementary Dataset
 
-**Riferimento:** repository MMFS indicato nella revisione:\
+**Reference:** MMFS repository indicated in the review:\
 https://github.com/dingyn-Reno/MMFS
 
-MMFS viene considerato una possibile fonte aggiuntiva di scheletri e
-annotazioni, inclusi punteggi GOE e Base Value secondo la descrizione
-riportata nella revisione.
+MMFS is considered a possible additional source of skeletons and
+annotations, including GOE and Base Value scores according to the
+description reported in the review.
 
-L'integrazione non è automatica. Prima di unire i dati occorre
-confrontare:
+Integration is not automatic. Before merging the data, it is necessary
+to compare:
 
--   convenzione e ordine dei 17 joint;
--   dimensionalità e sistema di coordinate;
--   unità di misura e convenzioni degli assi;
--   modalità di estrazione dello scheletro;
--   segmentazione temporale degli elementi;
--   definizione e scala del GOE;
--   identificativi degli atleti e delle esibizioni;
--   eventuali sovrapposizioni tra FineFS e MMFS.
+-   convention and ordering of the 17 joints;
+-   dimensionality and coordinate system;
+-   units of measurement and axis conventions;
+-   skeleton extraction method;
+-   temporal segmentation of elements;
+-   definition and scale of GOE;
+-   athlete and performance identifiers;
+-   possible overlaps between FineFS and MMFS.
 
-Se queste informazioni non sono compatibili o non sono ricostruibili,
-MMFS deve essere mantenuto separato oppure escluso dall'MVP. Non si
-devono concatenare i campioni soltanto perché entrambi contengono 17
-keypoint.
+If this information is incompatible or cannot be reconstructed, MMFS
+must be kept separate or excluded from the MVP. Samples must not be
+concatenated solely because both contain 17 keypoints.
 
-### 3.3 Selezione degli elementi tecnici
+### 3.3 Selection of Technical Elements
 
-L'MVP deve concentrarsi su pochi elementi, preferibilmente pose
-mantenute o elementi con una fase riconoscibile e relativamente stabile.
+The MVP should focus on a few elements, preferably held poses or
+elements with a recognizable and relatively stable phase.
 
-Tra gli esempi da valutare:
+Examples to evaluate include:
 
 -   Camel Spin;
 -   Sit Spin;
 -   Layback Spin.
 
-La scelta definitiva deve dipendere da:
+The final choice must depend on:
 
-1.  numero di campioni disponibili;
-2.  qualità e completezza degli scheletri;
-3.  disponibilità del GOE per il singolo elemento;
-4.  consistenza della segmentazione;
-5.  comparabilità biomeccanica tra le esecuzioni.
+1.  number of available samples;
+2.  skeleton quality and completeness;
+3.  availability of GOE for the individual element;
+4.  segmentation consistency;
+5.  biomechanical comparability across executions.
 
-La selezione deve essere effettuata con un'analisi esplorativa del
-dataset. Non si deve presumere che tutti gli elementi elencati siano
-presenti in quantità sufficiente.
+The selection must be made through an exploratory analysis of the
+dataset. It must not be assumed that all listed elements are present in
+sufficient quantities.
 
-### 3.4 Schema dati unificato
+### 3.4 Unified Data Schema
 
-Ogni campione deve essere rappresentato da un record con almeno i
-seguenti campi logici:
+Each sample must be represented by a record with at least the following
+logical fields:
 
-  Campo                   Descrizione
+  Field                   Description
   ----------------------- -------------------------------------------------
-  `sample_id`             Identificativo univoco del campione
-  `dataset_id`            Dataset di provenienza
-  `performance_id`        Identificativo dell'esibizione
-  `athlete_id`            Identificativo atleta, se disponibile
-  `element_label`         Classe dell'elemento tecnico
-  `start_frame`           Frame iniziale del segmento, se disponibile
-  `end_frame`             Frame finale del segmento, se disponibile
-  `keypoints`             Coordinate 3D dei 17 joint
-  `keypoint_confidence`   Confidenza per joint, se disponibile
-  `goe`                   GOE associato all'elemento, se disponibile
-  `source_metadata`       Metadati originali necessari alla tracciabilità
+  `sample_id`             Unique sample identifier
+  `dataset_id`            Source dataset
+  `performance_id`        Performance identifier
+  `athlete_id`            Athlete identifier, if available
+  `element_label`         Technical element class
+  `start_frame`           Segment start frame, if available
+  `end_frame`             Segment end frame, if available
+  `keypoints`             3D coordinates of the 17 joints
+  `keypoint_confidence`   Per-joint confidence, if available
+  `goe`                   GOE associated with the element, if available
+  `source_metadata`       Original metadata required for traceability
 
-Il formato interno deve preservare i metadati originali. La
-trasformazione nel formato comune non deve eliminare la possibilità di
-risalire al campione sorgente.
+The internal format must preserve the original metadata. Conversion into
+the common format must not remove the ability to trace back to the
+source sample.
 
-### 3.5 Split dei dati
+### 3.5 Data Splits
 
-La suddivisione training/validation/test deve avvenire **per esibizione
-e, quando possibile, per atleta**, non per singolo frame.
+The training/validation/test split must be performed **by performance
+and, whenever possible, by athlete**, not by individual frame.
 
-In questo modo si riduce il rischio che frame quasi identici della
-stessa esecuzione compaiano in split diversi.
+This reduces the risk that nearly identical frames from the same
+execution appear in different splits.
 
-Tutti i campioni derivati dalla stessa esecuzione, inclusi quelli
-generati tramite augmentation, devono rimanere nello stesso split del
-campione originale.
+All samples derived from the same execution, including those generated
+via augmentation, must remain in the same split as the original sample.
 
-Le percentuali degli split vanno definite dopo aver misurato la
-numerosità effettiva per classe. Come punto di partenza si può usare 70%
-training, 15% validation e 15% test, modificandole se la dimensione del
-dataset non consente una ripartizione stabile.
+Split percentages should be defined after measuring the effective sample
+count per class. As a starting point, 70% training, 15% validation, and
+15% test can be used, adjusting them if the dataset size does not allow
+a stable partition.
 
 ------------------------------------------------------------------------
 
-## 4. Rappresentazione temporale della posa
+## 4. Temporal Pose Representation
 
-Il progetto originario prevede il confronto di una media di pochi frame
-per rappresentare una posa o una fase dell'elemento.
+The original design calls for comparing an average of a few frames to
+represent a pose or a phase of the element.
 
-Per ogni segmento selezionato:
+For each selected segment:
 
-1.  identificare la finestra temporale corrispondente alla posa o alla
-    fase di interesse;
-2.  selezionare un numero limitato di frame;
-3.  verificare la qualità dei keypoint in ciascun frame;
-4.  canonicalizzare ogni scheletro;
-5.  aggregare le coordinate o le feature dei frame validi.
+1.  identify the temporal window corresponding to the pose or phase of
+    interest;
+2.  select a limited number of frames;
+3.  verify keypoint quality in each frame;
+4.  canonicalize each skeleton;
+5.  aggregate the coordinates or features of valid frames.
 
-La baseline è la media delle coordinate canonicalizzate dei frame
-selezionati:
+The baseline is the mean of the canonicalized coordinates of the
+selected frames:
 
 \[ `\bar`{=tex}{P} = `\frac{1}{T}`{=tex}`\sum`{=tex}\_{t=1}\^{T}P_t \]
 
-dove (P_t `\in `{=tex}`\mathbb{R}`{=tex}\^{17 `\times 3`{=tex}}) è lo
-scheletro canonicalizzato al frame (t).
+where (P_t `\in `{=tex}`\mathbb{R}`{=tex}\^{17 `\times 3`{=tex}}) is the
+canonicalized skeleton at frame (t).
 
-**Attenzione:** la media delle coordinate è appropriata soltanto quando
-i frame rappresentano la stessa fase e sono sufficientemente allineati.
-Non si devono mediare frame appartenenti a fasi cinematiche diverse,
-perché il risultato potrebbe non corrispondere a una posa realmente
-assunta dall'atleta.
+**Warning:** averaging coordinates is appropriate only when the frames
+represent the same phase and are sufficiently aligned. Frames belonging
+to different kinematic phases must not be averaged, because the result
+might not correspond to a pose actually assumed by the athlete.
 
-Per l'MVP si deve usare una finestra temporale coerente con la
-segmentazione disponibile. La dimensione esatta della finestra e il
-numero di frame sono iperparametri da verificare empiricamente.
+For the MVP, a temporal window consistent with the available
+segmentation must be used. The exact window size and number of frames
+are hyperparameters to be verified empirically.
 
 ------------------------------------------------------------------------
 
-## 5. Canonicalizzazione geometrica 3D
+## 5. 3D Geometric Canonicalization
 
-### 5.1 Motivazione
+### 5.1 Motivation
 
-Le coordinate grezze dipendono da traslazione, scala e orientamento del
-sistema di riferimento. Due pose biomeccanicamente simili potrebbero
-quindi apparire diverse alla rete.
+Raw coordinates depend on translation, scale, and orientation of the
+reference frame. Two biomechanically similar poses could therefore
+appear different to the network.
 
-Prima della costruzione del grafo si applicano tre trasformazioni:
+Before graph construction, three transformations are applied:
 
 1.  root-centering;
 2.  scale normalization;
 3.  yaw alignment.
 
-Queste trasformazioni riducono alcune differenze geometriche, ma non
-garantiscono invarianza completa al punto di vista. In particolare,
-l'allineamento yaw non corregge automaticamente differenze di pitch,
-roll, prospettiva o errori di ricostruzione 3D.
+These transformations reduce certain geometric differences, but do not
+guarantee full viewpoint invariance. In particular, yaw alignment does
+not automatically correct differences in pitch, roll, perspective, or 3D
+reconstruction errors.
 
 ### 5.2 Root-centering
 
-Si definisce la root come punto medio delle anche, assumendo la
-convenzione COCO a 17 joint e verificando gli indici rispetto al file
-sorgente:
+The root is defined as the midpoint of the hips, assuming the 17-joint
+COCO convention and verifying the indices against the source file:
 
 \[ p\_{`\text{pelvis}`{=tex}} = `\frac{p_{11}+p_{12}}{2}`{=tex} \]
 
-Per ogni joint:
+For each joint:
 
 \[ p'*i = p_i - p*{`\text{pelvis}`{=tex}} \]
 
-La trasformazione rimuove la traslazione globale dello scheletro.
+This transformation removes the global translation of the skeleton.
 
 ### 5.3 Scale normalization
 
-Si definisce il punto medio delle spalle:
+The midpoint of the shoulders is defined as:
 
 \[ p\_{`\text{shoulders}`{=tex}} = `\frac{p_5+p_6}{2}`{=tex} \]
 
-La scala di riferimento è la lunghezza del busto:
+The reference scale is the torso length:
 
 \[ s = \|p\_{`\text{shoulders}`{=tex}}-p\_{`\text{pelvis}`{=tex}}\|\_2
 \]
 
-Le coordinate vengono normalizzate:
+The coordinates are normalized:
 
 \[ p''\_i = `\frac{p'_i}{s}`{=tex} \]
 
-Se (s) è nullo, troppo piccolo o non valido, il campione deve essere
-marcato come non valido oppure gestito con una strategia esplicita. Non
-si deve dividere per zero né sostituire silenziosamente valori mancanti.
+If (s) is zero, too small, or invalid, the sample must be marked as
+invalid or handled with an explicit strategy. One must never divide by
+zero or silently replace missing values.
 
-La normalizzazione riduce le differenze di scala e corporatura, ma può
-anche rimuovere informazioni sulle proporzioni corporee. Questa scelta
-va documentata come assunzione del modello.
+Normalization reduces differences in scale and body build, but may also
+remove information about body proportions. This choice must be
+documented as a model assumption.
 
 ### 5.4 Yaw alignment
 
-Si utilizza il vettore tra le anche:
+The vector between the hips is used:
 
 \[ v\_{`\text{hip}`{=tex}} = p\_{12}-p\_{11} \]
 
-Sul piano X-Y si calcola:
+In the X-Y plane, compute:
 
 \[ `\theta `{=tex}= `\operatorname{atan2}`{=tex}(v_y,v_x) \]
 
-Si applica una rotazione inversa attorno all'asse Z:
+Apply an inverse rotation around the Z axis:
 
 \[ R_z(-`\theta`{=tex})=
 ```{=tex}
@@ -349,152 +344,151 @@ Si applica una rotazione inversa attorno all'asse Z:
 ```
 \]
 
-Le coordinate canonicalizzate sono:
+The canonicalized coordinates are:
 
 \[ p'''\_i = R_z(-`\theta`{=tex})p''\_i \]
 
-L'implementazione deve verificare che gli assi X, Y e Z dei dataset
-abbiano il significato assunto da questa formula. Se la convenzione
-degli assi è diversa, la rotazione va adattata.
+The implementation must verify that the X, Y, and Z axes of the datasets
+have the meaning assumed by this formula. If the axis convention
+differs, the rotation must be adapted.
 
-### 5.5 Controlli e limiti
+### 5.5 Checks and Limitations
 
-La pipeline deve registrare:
+The pipeline must log:
 
--   lunghezza del busto utilizzata per la scala;
--   angolo di yaw stimato;
--   presenza di joint mancanti o non validi;
--   eventuali scheletri scartati;
--   distribuzione delle coordinate prima e dopo la canonicalizzazione.
+-   torso length used for scaling;
+-   estimated yaw angle;
+-   presence of missing or invalid joints;
+-   any discarded skeletons;
+-   coordinate distributions before and after canonicalization.
 
-Va inoltre verificato il comportamento in caso di scheletro specchiato.
-L'allineamento del vettore delle anche non risolve da solo l'ambiguità
-destra/sinistra. Non si deve applicare un flip automatico senza una
-regola verificata e coerente con le etichette.
+Behavior in the case of a mirrored skeleton must also be verified.
+Aligning the hip vector does not by itself resolve left/right
+ambiguity. An automatic flip must not be applied without a verified rule
+consistent with the labels.
 
-La robustezza rispetto a viste differenti deve essere valutata
-sperimentalmente su dati disponibili. Non è necessario disporre della
-stessa esecuzione ripresa da due telecamere, ma l'assenza di coppie
-multi-view impedisce di dimostrare direttamente l'invarianza a viste
-diverse.
+Robustness across different viewpoints must be evaluated experimentally
+on available data. It is not necessary to have the same execution filmed
+from two cameras, but the absence of multi-view pairs prevents directly
+demonstrating invariance to different viewpoints.
 
 ------------------------------------------------------------------------
 
-## 6. Costruzione del grafo
+## 6. Graph Construction
 
-### 6.1 Topologia
+### 6.1 Topology
 
-Ogni posa viene rappresentata come un grafo:
+Each pose is represented as a graph:
 
 \[ G=(V,E,X,E_f) \]
 
-dove:
+where:
 
--   (V): 17 nodi corrispondenti ai joint;
--   (E): connessioni anatomiche dello scheletro;
--   (X): feature dei nodi;
--   (E_f): feature degli archi.
+-   (V): 17 nodes corresponding to the joints;
+-   (E): anatomical connections of the skeleton;
+-   (X): node features;
+-   (E_f): edge features.
 
-La topologia deve essere fissa e coerente con lo standard dei 17
-keypoint adottato dai dataset. La lista esatta delle connessioni deve
-essere definita una volta, verificata rispetto alla convenzione
-HRNet/COCO utilizzata e salvata come configurazione del progetto.
+The topology must be fixed and consistent with the 17-keypoint standard
+adopted by the datasets. The exact list of connections must be defined
+once, verified against the HRNet/COCO convention used, and saved as a
+project configuration.
 
-Non si devono assumere equivalenti topologie che differiscono per ordine
-o semantica dei nodi.
+Topologies that differ in node ordering or semantics must not be assumed
+equivalent.
 
-### 6.2 Node features
+### 6.2 Node Features
 
-Le feature iniziali dei nodi devono descrivere la geometria
-canonicalizzata. Baseline:
+Initial node features must describe the canonicalized geometry.
+Baseline:
 
 \[ x_i = \[x_i,y_i,z_i\] \]
 
-È possibile aggiungere feature derivate, come vettori direzionali delle
-ossa o indicatori di validità/confidenza, se disponibili e verificati.
+Derived features may be added, such as bone direction vectors or
+validity/confidence indicators, if available and verified.
 
-Per un osso tra i nodi (i) e (j):
+For a bone between nodes (i) and (j):
 
 \[ u\_{ij}=`\frac{p_j-p_i}{\|p_j-p_i\|_2+\epsilon}`{=tex} \]
 
-Le feature aggiuntive devono essere introdotte in modo controllato,
-confrontando la baseline con la variante estesa.
+Additional features must be introduced in a controlled manner, comparing
+the baseline against the extended variant.
 
-### 6.3 Edge features
+### 6.3 Edge Features
 
-Gli archi devono contenere informazioni geometriche, così che GATv2 non
-consideri soltanto la connettività.
+Edges must contain geometric information so that GATv2 does not consider
+connectivity alone.
 
-Feature candidate:
+Candidate features:
 
--   vettore direzionale normalizzato dell'osso;
--   lunghezza dell'osso dopo normalizzazione;
--   coseno dell'angolo articolare associato, quando definibile.
+-   normalized bone direction vector;
+-   bone length after normalization;
+-   cosine of the associated joint angle, when definable.
 
-Per tre joint (i,j,k), il coseno dell'angolo in (j) è:
+For three joints (i,j,k), the cosine of the angle at (j) is:
 
 \[ `\cos`{=tex}(`\theta`{=tex}\_{ijk}) =
 `\frac{(p_i-p_j)\cdot(p_k-p_j)}`{=tex}
 {\|p_i-p_j\|\_2\|p_k-p_j\|\_2+`\epsilon`{=tex}} \]
 
-La rappresentazione finale di `edge_attr` deve avere dimensione costante
-per tutti gli archi e per tutti i campioni.
+The final representation of `edge_attr` must have constant dimensionality
+for all edges and all samples.
 
-**Nota implementativa:** se una feature è definita a livello di
-articolazione e non di singolo arco, occorre stabilire una regola
-deterministica per associarla agli archi incidenti. Tale regola va
-documentata e mantenuta uguale in training e inference.
+**Implementation note:** if a feature is defined at the joint level
+rather than per single edge, a deterministic rule must be established to
+associate it with incident edges. This rule must be documented and kept
+identical in training and inference.
 
-### 6.4 Formato PyTorch Geometric
+### 6.4 PyTorch Geometric Format
 
-Ogni grafo deve essere serializzabile come oggetto
-`torch_geometric.data.Data`, con almeno:
+Each graph must be serializable as a `torch_geometric.data.Data` object,
+with at least:
 
--   `x`: feature dei nodi;
--   `edge_index`: connettività;
--   `edge_attr`: feature degli archi;
--   `y` o metadati separati: annotazioni utilizzate dal sampler e dalla
-    valutazione;
--   identificativo del campione e del dataset conservati nei metadati o
-    in un indice esterno.
+-   `x`: node features;
+-   `edge_index`: connectivity;
+-   `edge_attr`: edge features;
+-   `y` or separate metadata: annotations used by the sampler and
+    evaluation;
+-   sample and dataset identifiers preserved in metadata or an external
+    index.
 
-La serializzazione deve consentire di ricostruire il campione originale.
+Serialization must allow reconstructing the original sample.
 
 ------------------------------------------------------------------------
 
-## 7. Architettura del modello
+## 7. Model Architecture
 
 ### 7.1 Siamese GATv2
 
-La rete è composta da due rami con pesi condivisi. Ogni ramo riceve un
-grafo e produce un embedding nello stesso spazio latente.
+The network consists of two branches with shared weights. Each branch
+receives a graph and produces an embedding in the same latent space.
 
-Schema:
-
-``` text
-Grafo A ──> Encoder GATv2 condiviso ──> Embedding zA ──┐
-                                                       ├─> Distanza latente
-Grafo B ──> Encoder GATv2 condiviso ──> Embedding zB ──┘
-```
-
-Per il training triplet:
+Diagram:
 
 ``` text
-Anchor   ──> Encoder condiviso ──> zA
-Positive ──> Encoder condiviso ──> zP
-Negative ──> Encoder condiviso ──> zN
+Graph A ──> Shared GATv2 Encoder ──> Embedding zA ──┐
+                                                    ├─> Latent distance
+Graph B ──> Shared GATv2 Encoder ──> Embedding zB ──┘
 ```
 
-### 7.2 Scelta di GATv2Conv
+For triplet training:
 
-Si utilizza `GATv2Conv` di PyTorch Geometric anziché `GATConv` standard.
+``` text
+Anchor   ──> Shared Encoder ──> zA
+Positive ──> Shared Encoder ──> zP
+Negative ──> Shared Encoder ──> zN
+```
 
-Motivazione progettuale: GATv2 consente un meccanismo di attenzione
-dinamica, in cui il peso assegnato ai vicini dipende in modo più
-flessibile dal nodo interrogante e dalle feature coinvolte.
+### 7.2 Choice of GATv2Conv
 
-La configurazione deve includere `edge_dim` per consentire al layer di
-utilizzare le feature degli archi:
+PyTorch Geometric's `GATv2Conv` is used instead of standard `GATConv`.
+
+Design motivation: GATv2 enables a dynamic attention mechanism, in which
+the weight assigned to neighbors depends more flexibly on the querying
+node and the features involved.
+
+The configuration must include `edge_dim` to allow the layer to use
+edge features:
 
 ``` python
 GATv2Conv(
@@ -507,22 +501,22 @@ GATv2Conv(
 
 ### 7.3 Encoder
 
-L'encoder deve comprendere:
+The encoder must include:
 
-1.  uno o più layer GATv2;
-2.  funzione di attivazione;
-3.  eventuale dropout;
-4.  pooling globale per ottenere una rappresentazione del grafo;
-5.  layer lineare di proiezione nello spazio latente.
+1.  one or more GATv2 layers;
+2.  activation function;
+3.  optional dropout;
+4.  global pooling to obtain a graph-level representation;
+5.  linear projection layer into the latent space.
 
-Schema concettuale:
+Conceptual diagram:
 
 ``` text
 Node features + Edge features
           |
-       GATv2
+        GATv2
           |
-       GATv2
+        GATv2
           |
   Global Mean Pooling
           |
@@ -531,396 +525,390 @@ Node features + Edge features
       Embedding z
 ```
 
-Dimensioni iniziali da sperimentare:
+Initial dimensions to experiment with:
 
--   embedding: 32 o 64;
--   attention heads: 4 come configurazione iniziale;
--   dropout: da selezionare tramite validation;
--   numero di layer: limitato per ridurre il rischio di overfitting.
+-   embedding: 32 or 64;
+-   attention heads: 4 as initial configuration;
+-   dropout: to be selected via validation;
+-   number of layers: limited to reduce the risk of overfitting.
 
-Questi valori sono iperparametri iniziali, non risultati già validati.
-La dimensione degli input e degli output dei layer deve essere coerente
-con il numero di head e con l'eventuale concatenazione delle head.
+These values are initial hyperparameters, not already validated results.
+The input and output dimensions of the layers must be consistent with
+the number of heads and any head concatenation.
 
-### 7.4 Pesi condivisi
+### 7.4 Shared Weights
 
-I tre input della tripla devono attraversare la stessa istanza
-dell'encoder. Non si devono creare encoder indipendenti con parametri
-separati.
+The three inputs of the triplet must pass through the same encoder
+instance. Independent encoders with separate parameters must not be
+created.
 
-### 7.5 Regolarizzazione
+### 7.5 Regularization
 
-Dato il numero potenzialmente limitato di campioni reali:
+Given the potentially limited number of real samples:
 
--   mantenere l'encoder compatto;
--   usare dropout;
--   applicare early stopping sulla validation;
--   monitorare la distanza tra embedding;
--   evitare augmentation prima dello split;
--   controllare la sovrapposizione tra triplette;
--   confrontare training e validation loss per individuare overfitting.
+-   keep the encoder compact;
+-   use dropout;
+-   apply early stopping on validation;
+-   monitor the distance between embeddings;
+-   avoid augmentation before splitting;
+-   control overlap between triplets;
+-   compare training and validation loss to detect overfitting.
 
 ------------------------------------------------------------------------
 
-## 8. Training: Triplet Loss e costruzione delle triplette
+## 8. Training: Triplet Loss and Triplet Construction
 
-### 8.1 Motivazione
+### 8.1 Motivation
 
-Non si assume che esistano etichette precise di penalità per ogni
-singola posa. Il GOE, quando associato al singolo elemento, viene
-utilizzato per costruire relazioni di qualità tra campioni.
+Precise penalty labels are not assumed to exist for every individual
+pose. GOE, when associated with the individual element, is used to
+construct quality relationships between samples.
 
-La Triplet Loss permette di apprendere una metrica senza dover conoscere
-una penalità numerica esatta per ogni posa.
+Triplet Loss allows learning a metric without needing to know an exact
+numerical penalty for each pose.
 
-### 8.2 Definizione delle triplette
+### 8.2 Triplet Definition
 
-Ogni tripla contiene:
+Each triplet contains:
 
--   **Anchor (A):** un'esecuzione di un determinato elemento;
--   **Positive (P):** un'esecuzione dello stesso elemento con qualità
-    comparabile o superiore;
--   **Negative (N):** un'esecuzione dello stesso elemento con qualità
-    inferiore.
+-   **Anchor (A):** an execution of a given element;
+-   **Positive (P):** an execution of the same element with comparable
+    or higher quality;
+-   **Negative (N):** an execution of the same element with lower
+    quality.
 
-Le triplette devono rispettare la stessa classe di elemento, per evitare
-che il modello impari a distinguere elementi tecnici diversi invece
-della qualità esecutiva.
+Triplets must respect the same element class to prevent the model from
+learning to distinguish different technical elements instead of
+execution quality.
 
-Una regola iniziale, da verificare sulla distribuzione reale dei GOE, è:
+An initial rule, to be verified on the actual GOE distribution, is:
 
--   positivi: campioni con GOE elevato, ad esempio GOE ≥ +2;
--   negativi: campioni con GOE basso o non positivo, ad esempio GOE ≤ 0.
+-   positives: samples with high GOE, e.g., GOE ≥ +2;
+-   negatives: samples with low or non-positive GOE, e.g., GOE ≤ 0.
 
-Queste soglie sono quelle proposte nella revisione e devono essere
-adattate alla scala effettiva, alla distribuzione e alla definizione del
-GOE nel dataset. Non sono soglie ufficiali di penalità per singola
-articolazione.
+These thresholds are those proposed in the review and must be adapted to
+the actual scale, distribution, and definition of GOE in the dataset.
+They are not official per-joint penalty thresholds.
 
-Quando possibile, l'Anchor deve essere scelto tra i campioni di qualità
-elevata e il Positive tra campioni di qualità analoga. La selezione deve
-evitare che la stessa esecuzione sia usata come Anchor e Positive.
+When possible, the Anchor should be chosen from high-quality samples and
+the Positive from samples of similar quality. Selection must avoid using
+the same execution as both Anchor and Positive.
 
 ### 8.3 Triplet Margin Loss
 
-La loss standard è:
+The standard loss is:
 
 \[ L(A,P,N)= `\max`{=tex}`\left`{=tex}( \|f(A)-f(P)\|\_2 -
 \|f(A)-f(N)\|\_2 + `\alpha`{=tex}, 0 `\right`{=tex}) \]
 
-dove (f) è l'encoder Siamese e (`\alpha`{=tex}) è il margine.
+where (f) is the Siamese encoder and (`\alpha`{=tex}) is the margin.
 
-La rete deve imparare a mantenere:
+The network must learn to maintain:
 
 \[ d(A,P)+`\alpha `{=tex}\< d(A,N) \]
 
-### 8.4 Margine adattivo
+### 8.4 Adaptive Margin
 
-Si prevede un margine dipendente dalla severità della differenza di
-qualità tra Anchor e Negative.
+A margin depending on the severity of the quality difference between
+Anchor and Negative is planned.
 
-Valori iniziali proposti nella revisione:
+Initial values proposed in the review:
 
-  Gravità del negativo sintetico/annotato     Margine iniziale
-  ----------------------------------------- ------------------
-  Lieve                                                    0.2
-  Medio                                                    0.6
-  Grave                                                    1.0
+  Severity of synthetic/annotated negative    Initial margin
+  ----------------------------------------- ----------------
+  Mild                                                   0.2
+  Moderate                                               0.6
+  Severe                                                 1.0
 
-Questi valori sono iperparametri sperimentali. Non rappresentano una
-conversione ufficiale tra GOE e distanza latente.
+These values are experimental hyperparameters. They do not represent an
+official conversion between GOE and latent distance.
 
-**Punto metodologico importante:** un margine adattivo richiede una
-regola riproducibile che associ la coppia Anchor-Negative a un livello
-di differenza. Se il GOE non permette di determinare tale livello, si
-deve usare una strategia più semplice: margine fisso oppure fasce di
-qualità definite sui dati disponibili.
+**Important methodological point:** an adaptive margin requires a
+reproducible rule that maps the Anchor-Negative pair to a difference
+level. If GOE does not allow determining such a level, a simpler strategy
+must be used: a fixed margin or quality tiers defined on the available
+data.
 
-### 8.5 Data augmentation
+### 8.5 Data Augmentation
 
-L'augmentation geometrica è una strategia di supporto, non un sostituto
-delle annotazioni reali.
+Geometric augmentation is a supporting strategy, not a replacement for
+real annotations.
 
-Possibili perturbazioni:
+Possible perturbations:
 
--   variazioni controllate degli angoli articolari;
--   perturbazioni locali di gomiti, ginocchia o anche;
--   rumore gaussiano limitato sulle coordinate;
--   piccole rotazioni e variazioni geometriche compatibili con la posa.
+-   controlled variations of joint angles;
+-   local perturbations of elbows, knees, or hips;
+-   bounded Gaussian noise on coordinates;
+-   small rotations and geometric variations compatible with the pose.
 
-Ogni trasformazione deve preservare la plausibilità anatomica e non
-cambiare accidentalmente la classe dell'elemento.
+Every transformation must preserve anatomical plausibility and must not
+accidentally change the element class.
 
-I campioni sintetici devono avere metadati che identifichino il campione
-sorgente, il tipo di perturbazione e la sua intensità.
+Synthetic samples must carry metadata identifying the source sample, the
+type of perturbation, and its intensity.
 
-Non si devono attribuire automaticamente penalità ufficiali ISU alle
-perturbazioni geometriche. Le soglie angolari e i valori di penalità
-menzionati nella revisione devono essere verificati sul regolamento
-applicabile e non trattati come label certificate senza tale verifica.
+Official ISU penalties must not be automatically assigned to geometric
+perturbations. Angular thresholds and penalty values mentioned in the
+review must be verified against the applicable regulations and not
+treated as certified labels without such verification.
 
-L'augmentation deve essere applicata esclusivamente ai campioni del
-training set.
+Augmentation must be applied exclusively to samples in the training set.
 
-### 8.6 Strategia di sampling
+### 8.6 Sampling Strategy
 
-Il sampler deve:
+The sampler must:
 
-1.  selezionare una classe di elemento;
-2.  selezionare un Anchor;
-3.  selezionare un Positive della stessa classe e qualità comparabile;
-4.  selezionare un Negative della stessa classe ma di qualità inferiore;
-5.  assegnare il margine secondo la regola configurata;
-6.  evitare campioni appartenenti a split differenti.
+1.  select an element class;
+2.  select an Anchor;
+3.  select a Positive of the same class and comparable quality;
+4.  select a Negative of the same class but lower quality;
+5.  assign the margin according to the configured rule;
+6.  avoid samples belonging to different splits.
 
-In una fase successiva si può introdurre *semi-hard negative mining*,
-scegliendo negativi più difficili da distinguere. Per il primo MVP è
-preferibile implementare un sampler semplice, verificabile e
-riproducibile.
+In a later phase, *semi-hard negative mining* can be introduced,
+choosing negatives that are harder to distinguish. For the first MVP, it
+is preferable to implement a simple, verifiable, and reproducible
+sampler.
 
 ------------------------------------------------------------------------
 
-## 9. Conversione della distanza in indicatore di qualità
+## 9. Converting Distance into a Quality Indicator
 
-La distanza euclidea tra embedding è:
+The Euclidean distance between embeddings is:
 
 \[ d(A,R)=\|f(A)-f(R)\|\_2 \]
 
-dove (A) è il campione dell'atleta e (R) è un riferimento di qualità
-elevata dello stesso elemento.
+where (A) is the athlete's sample and (R) is a high-quality reference of
+the same element.
 
-La distanza è l'output primario del modello. Una distanza minore indica
-maggiore somiglianza nello spazio appreso.
+Distance is the primary output of the model. A smaller distance
+indicates greater similarity in the learned space.
 
-Per presentare un indicatore più intuitivo si può applicare una
-trasformazione monotona, ad esempio:
+To present a more intuitive indicator, a monotonic transformation can be
+applied, for example:
 
 \[ q(d)=`\exp`{=tex}(-`\beta `{=tex}d) \]
 
-dove (`\beta`{=tex}) è un parametro da calibrare sulla validation.
+where (`\beta`{=tex}) is a parameter to be calibrated on validation.
 
-Il risultato può essere riportato su scala 0--100:
+The result can be reported on a 0--100 scale:
 
 \[ Q=100`\cdot `{=tex}q(d) \]
 
-Questo valore è un **indice interno di similarità**, non un punteggio
-ufficiale, una percentuale di correttezza certificata o una stima
-diretta del GOE.
+This value is an **internal similarity index**, not an official score, a
+certified correctness percentage, or a direct estimate of GOE.
 
-La calibrazione deve essere effettuata soltanto sulla validation. Il
-test set deve rimanere separato fino alla valutazione finale.
+Calibration must be performed only on validation. The test set must
+remain separate until final evaluation.
 
-Se sono disponibili più riferimenti per un elemento, si può confrontare
-l'atleta con un prototipo ottenuto aggregando gli embedding dei campioni
-di alta qualità, oppure con più riferimenti individuali. Per l'MVP è
-sufficiente definire una strategia unica e mantenerla costante durante
-la valutazione.
+If multiple references are available for an element, the athlete can be
+compared against a prototype obtained by aggregating the embeddings of
+high-quality samples, or against multiple individual references. For the
+MVP, it is sufficient to define a single strategy and keep it constant
+during evaluation.
 
 ------------------------------------------------------------------------
 
 ## 10. Explainability
 
-La componente di explainability utilizza i pesi di attenzione restituiti
-da `GATv2Conv`.
+The explainability component uses the attention weights returned by
+`GATv2Conv`.
 
-Con `return_attention_weights=True` è possibile recuperare i
-coefficienti di attenzione associati agli archi.
+With `return_attention_weights=True`, it is possible to retrieve the
+attention coefficients associated with the edges.
 
-Obiettivo della visualizzazione:
+Visualization objective:
 
--   rappresentare lo scheletro sul piano;
--   associare un'intensità visiva ai collegamenti;
--   evidenziare le connessioni a cui il modello assegna maggiore
-    attenzione;
--   confrontare visivamente esecuzione e riferimento.
+-   render the skeleton on a 2D plane;
+-   associate visual intensity with the connections;
+-   highlight the connections to which the model assigns higher
+    attention;
+-   visually compare execution and reference.
 
-La visualizzazione deve essere interpretata con cautela: un peso di
-attenzione elevato indica che il layer assegna maggiore peso a una
-connessione nel proprio calcolo, ma non dimostra da solo causalità né
-corrispondenza diretta con una penalità regolamentare.
+The visualization must be interpreted with caution: a high attention
+weight indicates that the layer assigns greater weight to a connection
+in its computation, but does not by itself prove causality or direct
+correspondence with a regulatory penalty.
 
-Per una visualizzazione leggibile:
+For a readable visualization:
 
-1.  aggregare i pesi tra le head secondo una regola esplicita, ad
-    esempio media;
-2.  definire una normalizzazione dei valori;
-3.  mappare i valori sugli archi dello scheletro;
-4.  riportare il nome dell'elemento e la distanza latente;
-5.  mantenere la stessa scala cromatica tra campioni confrontati.
+1.  aggregate weights across heads using an explicit rule, such as the
+    mean;
+2.  define a value normalization;
+3.  map values onto the skeleton edges;
+4.  display the element name and latent distance;
+5.  maintain the same color scale across compared samples.
 
-La richiesta dei pesi di attenzione va abilitata in fase di
-inferenza/analisi, senza appesantire inutilmente il training.
+Requesting attention weights should be enabled during
+inference/analysis, without unnecessarily slowing down training.
 
 ------------------------------------------------------------------------
 
-## 11. Pipeline di inferenza e demo
+## 11. Inference Pipeline and Demo
 
-La demo deve mostrare il funzionamento su pochi video esterni al
-training.
+The demo must show operation on a few videos outside the training set.
 
-Pipeline prevista:
+Planned pipeline:
 
 ``` text
 Video
   |
-Pose estimation (MediaPipe o altro estimator selezionato)
+Pose estimation (MediaPipe or other selected estimator)
   |
-Mapping dei keypoint sullo standard canonico a 17 nodi
+Keypoint mapping to the canonical 17-node standard
   |
-Controllo qualità dei keypoint
+Keypoint quality check
   |
-Selezione della finestra temporale
+Temporal window selection
   |
-Canonicalizzazione 3D (se sono disponibili coordinate 3D compatibili)
+3D canonicalization (if compatible 3D coordinates are available)
   |
-Costruzione del grafo
+Graph construction
   |
 Siamese GATv2
   |
-Embedding e distanza dal riferimento
+Embedding and distance from reference
   |
-Indice di similarità + visualizzazione
+Similarity index + visualization
 ```
 
-### 11.1 Compatibilità MediaPipe-HRNet
+### 11.1 MediaPipe-HRNet Compatibility
 
-La revisione propone di usare MediaPipe per la demo, proiettando i suoi
-33 landmark sui 17 joint dello standard COCO.
+The review proposes using MediaPipe for the demo, projecting its 33
+landmarks onto the 17 joints of the COCO standard.
 
-Questa operazione richiede una mappatura esplicita e verificata per ogni
-joint. Non è sufficiente selezionare indici senza controllare la
-semantica dei landmark.
+This operation requires an explicit and verified mapping for each joint.
+Selecting indices without checking landmark semantics is not
+sufficient.
 
-Inoltre, la compatibilità non è soltanto topologica:
+Moreover, compatibility is not only topological:
 
--   HRNet e MediaPipe possono produrre coordinate in sistemi di
-    riferimento differenti;
--   le coordinate 3D possono avere significati e scale differenti;
--   il bias del pose estimator può essere diverso;
--   la proiezione da 33 a 17 punti non rende automaticamente equivalenti
-    le distribuzioni.
+-   HRNet and MediaPipe may produce coordinates in different reference
+    frames;
+-   3D coordinates may have different meanings and scales;
+-   pose estimator bias may differ;
+-   projecting from 33 to 17 points does not automatically make the
+    distributions equivalent.
 
-**Vincolo:** il modello addestrato su scheletri FineFS/MMFS non deve
-ricevere direttamente coordinate MediaPipe senza una fase di verifica
-del dominio e della rappresentazione.
+**Constraint:** the model trained on FineFS/MMFS skeletons must not
+directly receive MediaPipe coordinates without a domain and
+representation verification phase.
 
-Per il primo MVP è accettabile mostrare la pipeline di inferenza su un
-campione proveniente dallo stesso dominio dei dati di training. La demo
-MediaPipe è un'estensione subordinata alla compatibilità tecnica.
+For the first MVP, it is acceptable to show the inference pipeline on a
+sample coming from the same domain as the training data. The MediaPipe
+demo is an extension subordinate to technical compatibility.
 
-### 11.2 Pose estimator alternativo
+### 11.2 Alternative Pose Estimators
 
-La revisione cita MediaPipe come soluzione pratica per la demo, ma
-segnala i suoi limiti in contesti sportivi complessi. Cita inoltre
-RTMPose e ViTPose come alternative.
+The review mentions MediaPipe as a practical solution for the demo, but
+points out its limitations in complex sports contexts. It also cites
+RTMPose and ViTPose as alternatives.
 
-La scelta finale del pose estimator per video esterni deve dipendere
-dalla disponibilità di coordinate compatibili, dalla qualità osservata e
-dal costo computazionale. Non è necessario addestrare un pose estimator
-nell'MVP.
+The final choice of pose estimator for external videos must depend on
+the availability of compatible coordinates, observed quality, and
+computational cost. Training a pose estimator is not required in the
+MVP.
 
 ------------------------------------------------------------------------
 
-## 12. Valutazione sperimentale
+## 12. Experimental Evaluation
 
-La valutazione deve misurare sia la capacità di ordinare le esecuzioni
-per qualità, sia la capacità di rispettare i vincoli delle triplette.
+Evaluation must measure both the ability to rank executions by quality
+and the ability to satisfy triplet constraints.
 
-### 12.1 Metriche principali
+### 12.1 Primary Metrics
 
 **Triplet Accuracy**
 
-Percentuale di triplette per cui:
+Percentage of triplets for which:
 
 \[ d(A,P)\<d(A,N) \]
 
-È la metrica direttamente collegata all'obiettivo di metric learning.
+This is the metric directly tied to the metric learning objective.
 
 **Spearman Rank Correlation ((`\rho`{=tex}))**
 
-Misura la correlazione monotona tra distanza predetta e qualità
-annotata. Poiché una distanza minore dovrebbe corrispondere a qualità
-maggiore, il segno della correlazione va gestito coerentemente: si può
-correlare la distanza con il GOE atteso oppure correlare (-d) con il
+Measures the monotonic correlation between predicted distance and
+annotated quality. Since a smaller distance should correspond to higher
+quality, the sign of the correlation must be handled consistently: one
+can correlate distance with expected negative GOE or correlate (-d) with
 GOE.
 
-La correlazione deve essere calcolata su campioni indipendenti e con
-annotazioni riferite allo stesso elemento.
+Correlation must be computed on independent samples with annotations
+referring to the same element.
 
-### 12.2 Analisi aggiuntive
+### 12.2 Additional Analyses
 
--   distribuzione delle distanze per fasce di GOE;
--   distanza media intra-gruppo e inter-gruppo;
--   andamento della loss su training e validation;
--   prestazioni per elemento tecnico;
--   numero di campioni validi/scartati;
--   sensibilità a rumore e perturbazioni;
--   confronto tra feature base e feature estese.
+-   distance distribution across GOE tiers;
+-   mean intra-group and inter-group distance;
+-   training and validation loss curves;
+-   performance per technical element;
+-   count of valid/discarded samples;
+-   sensitivity to noise and perturbations;
+-   comparison between base features and extended features.
 
-Se il numero di campioni è ridotto, i risultati devono essere
-accompagnati dal numero di osservazioni e interpretati come evidenza
-preliminare, non come stima robusta della generalizzazione.
+If the number of samples is small, results must be accompanied by the
+sample count and interpreted as preliminary evidence, not as a robust
+estimate of generalization.
 
-### 12.3 Baseline non neurale
+### 12.3 Non-Neural Baseline
 
-Per giustificare l'utilizzo della GNN, è necessario confrontarla con
-almeno una baseline geometrica.
+To justify using the GNN, it is necessary to compare it against at least
+one geometric baseline.
 
-Baseline consigliate:
+Recommended baselines:
 
-1.  distanza euclidea tra coordinate canonicalizzate;
-2.  distanza tra angoli articolari;
-3.  eventualmente cosine similarity tra vettori di feature.
+1.  Euclidean distance between canonicalized coordinates;
+2.  distance between joint angles;
+3.  optionally cosine similarity between feature vectors.
 
-La GNN è giustificata se apprende una metrica più coerente con le
-differenze di qualità rispetto a queste misure semplici. Il confronto è
-importante perché i nodi sono già semanticamente corrispondenti tra i
-grafi.
+The GNN is justified if it learns a metric more consistent with quality
+differences than these simple measures. This comparison is important
+because nodes are already semantically aligned across graphs.
 
 ------------------------------------------------------------------------
 
-## 13. Big Data e gestione computazionale
+## 13. Big Data and Computational Management
 
-Il carico principale non è necessariamente il training della GNN, poiché
-i grafi con 17 nodi sono piccoli. La parte più costosa può essere il
-download, la decodifica e l'estrazione delle pose dai video raw.
+The main computational load is not necessarily GNN training, as 17-node
+graphs are small. The most expensive part may be downloading, decoding,
+and extracting poses from raw videos.
 
-La strategia scelta è:
+The chosen strategy is:
 
--   privilegiare scheletri già estratti nei dataset accademici;
--   eseguire preprocessing e canonicalizzazione offline;
--   salvare i grafi preprocessati su disco;
--   addestrare la GNN sui grafi serializzati;
--   usare i video raw soltanto per una demo limitata.
+-   prioritize already-extracted skeletons in academic datasets;
+-   perform preprocessing and canonicalization offline;
+-   save preprocessed graphs to disk;
+-   train the GNN on serialized graphs;
+-   use raw videos only for a limited demo.
 
-Il progetto non prevede l'obbligo di introdurre Spark, Kafka o Hadoop,
-poiché nella discussione non sono stati indicati framework specifici dal
-corso. La componente Big Data va motivata attraverso la gestione della
-pipeline dati, la standardizzazione, il preprocessing e la possibilità
-di scalare l'estrazione su grandi raccolte video.
+The project does not require introducing Spark, Kafka, or Hadoop, as no
+specific course frameworks were mandated during discussion. The Big Data
+component should be motivated through data pipeline management,
+standardization, preprocessing, and the ability to scale extraction to
+large video collections.
 
 ### 13.1 Hardware
 
-Il dispositivo indicato è un Asus Vivobook Pro 15 con processore AMD
-Ryzen serie 6000 e GPU NVIDIA, ma il modello esatto della GPU e la VRAM
-non sono stati confermati.
+The indicated device is an Asus Vivobook Pro 15 with an AMD Ryzen 6000
+series processor and an NVIDIA GPU, but the exact GPU model and VRAM
+have not been confirmed.
 
-Prima di configurare il training:
+Before configuring training:
 
--   rilevare modello GPU e VRAM;
--   verificare versione CUDA compatibile;
--   installare PyTorch e PyTorch Geometric nelle versioni compatibili;
--   eseguire un test end-to-end su pochi grafi.
+-   detect GPU model and VRAM;
+-   verify compatible CUDA version;
+-   install compatible versions of PyTorch and PyTorch Geometric;
+-   run an end-to-end test on a few graphs.
 
-Il training deve essere progettato per funzionare anche su CPU o con
-batch ridotti. Non si deve basare la pianificazione su una quantità di
-VRAM presunta.
+Training must be designed to work on CPU or with small batches as well.
+Planning must not rely on an assumed amount of VRAM.
 
 ------------------------------------------------------------------------
 
-## 14. Struttura software proposta
+## 14. Proposed Software Structure
 
-Una possibile organizzazione del repository:
+A possible repository organization:
 
 ``` text
 figure-skating-aqa/
@@ -985,259 +973,252 @@ figure-skating-aqa/
     └── test_triplets.py
 ```
 
-La struttura è una proposta organizzativa. Può essere semplificata se il
-tempo disponibile lo richiede, ma è opportuno mantenere separati
-caricamento dati, preprocessing, costruzione dei grafi, modello e
-valutazione.
+This structure is an organizational proposal. It can be simplified if
+available time requires it, but data loading, preprocessing, graph
+construction, model, and evaluation should remain separated.
 
 ------------------------------------------------------------------------
 
-## 15. Dipendenze tecnologiche
+## 15. Technology Dependencies
 
-Stack previsto:
+Planned stack:
 
 -   Python;
 -   NumPy;
--   SciPy, se necessario per operazioni geometriche;
+-   SciPy, if needed for geometric operations;
 -   PyTorch;
 -   PyTorch Geometric;
--   scikit-learn per utility e metriche;
--   Matplotlib per visualizzazioni;
--   OpenCV per eventuale lettura video;
--   MediaPipe soltanto per la demo, se compatibile.
+-   scikit-learn for utilities and metrics;
+-   Matplotlib for visualizations;
+-   OpenCV for optional video reading;
+-   MediaPipe only for the demo, if compatible.
 
-Le versioni devono essere fissate in `requirements.txt` dopo aver
-verificato la compatibilità con Python, GPU e CUDA disponibili.
-
-------------------------------------------------------------------------
-
-## 16. Test e criteri di accettazione
-
-### 16.1 Test della pipeline dati
-
--   Un file sorgente valido viene caricato senza perdita di metadati.
--   Il numero di joint è verificato e coerente con lo standard atteso.
--   Le coordinate hanno shape e dimensionalità documentate.
--   GOE e segmento temporale sono associati al campione corretto.
--   I campioni invalidi vengono identificati e contabilizzati.
-
-### 16.2 Test della canonicalizzazione
-
--   Il root-centering porta la root all'origine entro una tolleranza
-    numerica.
--   La lunghezza di riferimento del busto diventa unitaria, salvo casi
-    invalidi.
--   Lo yaw alignment porta il vettore delle anche all'orientamento
-    canonico previsto.
--   La funzione gestisce valori mancanti e denominatori degeneri.
--   La trasformazione non modifica l'ordine o l'identità dei joint.
-
-### 16.3 Test del grafo
-
--   Ogni grafo contiene 17 nodi.
--   Tutti i grafi usano la stessa topologia.
--   `edge_index` rispetta gli indici dei nodi.
--   `edge_attr` ha dimensione costante e valori finiti.
--   Il grafo è compatibile con il batching PyTorch Geometric.
-
-### 16.4 Test del training
-
--   I tre rami usano gli stessi parametri.
--   Le triplette rispettano la classe dell'elemento.
--   Positive e Negative rispettano la regola di qualità configurata.
--   La loss è finita e differenziabile.
--   Il training è riproducibile a parità di seed e configurazione.
--   Training e validation sono separati per esibizione/atleta secondo lo
-    split definito.
-
-### 16.5 Criteri di successo dell'MVP
-
-L'MVP è considerato implementato quando:
-
-1.  è disponibile un dataset preprocessato e tracciabile;
-2.  almeno un elemento tecnico dispone di campioni sufficienti per
-    training e valutazione preliminare;
-3.  la pipeline produce grafi canonici a 17 nodi;
-4.  la Siamese GATv2 completa il training senza errori;
-5.  la Triplet Accuracy è superiore al comportamento casuale sul test
-    set;
-6.  la distanza mostra una relazione interpretabile con il GOE, se le
-    annotazioni sono compatibili;
-7.  è disponibile un confronto con una baseline geometrica;
-8.  viene prodotta almeno una visualizzazione dei pesi di attenzione;
-9.  sono documentati limiti, split, iperparametri e risultati.
-
-Non viene fissata una soglia numerica arbitraria di Spearman o Triplet
-Accuracy prima di aver analizzato la numerosità e la distribuzione dei
-dati. I risultati devono essere riportati integralmente, anche se
-negativi.
+Versions must be pinned in `requirements.txt` after verifying
+compatibility with the available Python, GPU, and CUDA versions.
 
 ------------------------------------------------------------------------
 
-## 17. Roadmap operativa di 14 giorni
+## 16. Tests and Acceptance Criteria
+
+### 16.1 Data Pipeline Tests
+
+-   A valid source file is loaded without metadata loss.
+-   The number of joints is verified and consistent with the expected
+    standard.
+-   Coordinates have documented shape and dimensionality.
+-   GOE and temporal segment are associated with the correct sample.
+-   Invalid samples are identified and accounted for.
+
+### 16.2 Canonicalization Tests
+
+-   Root-centering brings the root to the origin within a numerical
+    tolerance.
+-   The reference torso length becomes unit length, except in invalid
+    cases.
+-   Yaw alignment brings the hip vector to the expected canonical
+    orientation.
+-   The function handles missing values and degenerate denominators.
+-   The transformation does not alter joint ordering or identity.
+
+### 16.3 Graph Tests
+
+-   Each graph contains 17 nodes.
+-   All graphs use the same topology.
+-   `edge_index` respects node indices.
+-   `edge_attr` has constant dimensionality and finite values.
+-   The graph is compatible with PyTorch Geometric batching.
+
+### 16.4 Training Tests
+
+-   The three branches use the same parameters.
+-   Triplets respect the element class.
+-   Positive and Negative respect the configured quality rule.
+-   The loss is finite and differentiable.
+-   Training is reproducible given the same seed and configuration.
+-   Training and validation are separated by performance/athlete
+    according to the defined split.
+
+### 16.5 MVP Success Criteria
+
+The MVP is considered implemented when:
+
+1.  a preprocessed and traceable dataset is available;
+2.  at least one technical element has sufficient samples for training
+    and preliminary evaluation;
+3.  the pipeline produces canonical 17-node graphs;
+4.  the Siamese GATv2 completes training without errors;
+5.  Triplet Accuracy is above random chance on the test set;
+6.  distance shows an interpretable relationship with GOE, if annotations
+    are compatible;
+7.  a comparison with a geometric baseline is available;
+8.  at least one attention weight visualization is produced;
+9.  limitations, splits, hyperparameters, and results are documented.
+
+No arbitrary numerical threshold for Spearman or Triplet Accuracy is set
+before analyzing the sample count and data distribution. Results must be
+reported in full, even if negative.
+
+------------------------------------------------------------------------
+
+## 17. 14-Day Operational Roadmap
 
   -----------------------------------------------------------------------
-  Giorni                  Attività                Deliverable
+  Days                    Activities              Deliverables
   ----------------------- ----------------------- -----------------------
-  1--3                    Download FineFS;        Report esplorativo e
-                          analisi `.npz`;         decisione sul dataset
-                          verifica GOE, segmenti, 
-                          joint e coordinate;     
-                          valutazione MMFS        
+  1--3                    FineFS download; `.npz` Exploratory report and
+                          analysis; GOE,          dataset decision
+                          segments, joints, and   
+                          coordinates check; MMFS 
+                          evaluation              
 
-  4--6                    Selezione elementi;     Dataset PyG
-                          split per               preprocessato e testato
-                          atleta/esibizione;      
-                          canonicalizzazione;     
-                          costruzione e           
-                          serializzazione grafi;  
-                          sampler e augmentation  
+  4--6                    Element selection;      Preprocessed and tested
+                          athlete/performance     PyG dataset
+                          split;                  
+                          canonicalization; graph 
+                          construction and        
+                          serialization; sampler  
+                          and augmentation        
 
-  7--10                   Implementazione encoder Checkpoint e report di
-                          GATv2; Siamese          training
-                          condivisa; Triplet      
-                          Loss; training e prime  
-                          metriche                
+  7--10                   GATv2 encoder           Checkpoints and
+                          implementation; shared  training report
+                          Siamese; Triplet Loss;  
+                          training and initial    
+                          metrics                 
 
-  11--14                  Valutazione test;       MVP, risultati e
-                          baseline geometrica;    documentazione
-                          attenzione; demo        
-                          limitata; report e      
-                          presentazione           
+  11--14                  Test evaluation;        MVP, results, and
+                          geometric baseline;     documentation
+                          attention; limited      
+                          demo; report and        
+                          presentation            
   -----------------------------------------------------------------------
 
-### Priorità in caso di ritardi
+### Priorities in Case of Delays
 
-1.  Completare FineFS e validare il formato dei dati.
-2.  Usare un solo elemento tecnico ben rappresentato.
-3.  Implementare canonicalizzazione e grafo.
-4.  Addestrare la Siamese GATv2 con sampler semplice.
-5.  Calcolare le metriche e confrontare una baseline.
-6.  Aggiungere MMFS solo se l'integrazione è rapida e verificata.
-7.  Aggiungere demo MediaPipe soltanto dopo aver verificato la
-    compatibilità delle coordinate.
-8.  Completare la visualizzazione dei pesi di attenzione.
+1.  Complete FineFS and validate the data format.
+2.  Use a single well-represented technical element.
+3.  Implement canonicalization and graph construction.
+4.  Train the Siamese GATv2 with a simple sampler.
+5.  Compute metrics and compare against a baseline.
+6.  Add MMFS only if integration is quick and verified.
+7.  Add the MediaPipe demo only after verifying coordinate
+    compatibility.
+8.  Complete attention weight visualization.
 
-La demo non deve compromettere la validazione del modello.
+The demo must not compromise model validation.
 
 ------------------------------------------------------------------------
 
-## 18. Rischi e decisioni ancora aperte
+## 18. Risks and Open Decisions
 
   -----------------------------------------------------------------------
-  Rischio / punto aperto  Impatto                 Azione
+  Risk / Open Point       Impact                  Action
   ----------------------- ----------------------- -----------------------
-  Coordinate FineFS non   Alto                    Ispezionare file e
-  comprese o non                                  documentazione prima
-  realmente 3D nel                                del preprocessing
-  formato atteso                                  
+  FineFS coordinates not  High                    Inspect files and
+  understood or not                               documentation before
+  truly 3D in expected                            preprocessing
+  format                                          
 
-  GOE non associato al    Alto                    Verificare la
-  singolo elemento                                granularità delle
-                                                  annotazioni; non usarlo
-                                                  come label locale se
-                                                  non lo è
+  GOE not associated with High                    Verify annotation
+  individual element                              granularity; do not use
+                                                  as local label if it is
+                                                  not
 
-  Incompatibilità         Alto                    Confrontare schema,
-  FineFS-MMFS                                     coordinate, joint e
-                                                  annotazioni; escludere
-                                                  MMFS se non
-                                                  armonizzabile
+  FineFS-MMFS             High                    Compare schema,
+  incompatibility                                 coordinates, joints,
+                                                  and annotations;
+                                                  exclude MMFS if not
+                                                  harmonizable
 
-  Pochi campioni per      Alto                    Ridurre il numero di
-  elemento                                        elementi e applicare
-                                                  augmentation
-                                                  controllata
+  Few samples per element High                    Reduce number of
+                                                  elements and apply
+                                                  controlled augmentation
 
-  Squilibrio tra fasce    Medio/alto              Analizzare
-  GOE                                             distribuzioni e
-                                                  progettare sampler
-                                                  bilanciato
+  Imbalance across GOE    Medium/High             Analyze distributions
+  tiers                                           and design balanced
+                                                  sampler
 
-  Overfitting             Alto                    Encoder compatto, split
-                                                  per atleta, dropout,
-                                                  early stopping
+  Overfitting             High                    Compact encoder,
+                                                  athlete-level split,
+                                                  dropout, early stopping
 
-  Differenze di           Alto                    Non effettuare
-  coordinate                                      inferenza diretta senza
-  HRNet/MediaPipe                                 test di domain
-                                                  alignment
+  HRNet/MediaPipe         High                    Do not run direct
+  coordinate differences                          inference without
+                                                  domain alignment
+                                                  testing
 
-  Ambiguità               Medio                   Verificare convenzione
-  destra/sinistra                                 dei joint e gestire
-                                                  esplicitamente
-                                                  eventuali mirror
+  Left/right ambiguity    Medium                  Verify joint convention
+                                                  and explicitly handle
+                                                  any mirrored cases
 
-  Invarianza incompleta   Medio/alto              Documentare limiti e
-  al punto di vista                               valutare su dati con
-                                                  viste disponibili
+  Incomplete viewpoint    Medium/High             Document limitations
+  invariance                                      and evaluate on data
+                                                  with available views
 
-  Interpretazione         Medio                   Presentare i pesi come
-  impropria                                       indicatori del modello,
-  dell'attenzione                                 non come spiegazioni
-                                                  causali
+  Improper interpretation Medium                  Present weights as
+  of attention                                    model indicators, not
+                                                  causal explanations
 
-  Conversione             Medio                   Usare indice di
-  distanza-punteggio non                          similarità e calibrare
-  calibrata                                       solo sulla validation
+  Uncalibrated            Medium                  Use similarity index
+  distance-to-score                               and calibrate only on
+  conversion                                      validation
   -----------------------------------------------------------------------
 
-### Decisioni da chiudere prima del training
+### Decisions to Finalize Before Training
 
--   Elementi tecnici definitivi e numerosità minima accettabile.
--   Convenzione esatta dei 17 joint e lista degli archi.
--   Nomi e shape effettivi degli array FineFS.
--   Sistema di riferimento e unità delle coordinate 3D.
--   Granularità e scala dei punteggi GOE.
--   Strategia di aggregazione temporale.
--   Regola per la selezione dei riferimenti.
--   Margine fisso o adattivo della Triplet Loss.
--   Strategia di calibrazione dell'indice di similarità.
--   Compatibilità effettiva della demo MediaPipe.
+-   Final technical elements and minimum acceptable sample count.
+-   Exact 17-joint convention and edge list.
+-   Actual names and shapes of FineFS arrays.
+-   Reference frame and units of 3D coordinates.
+-   Granularity and scale of GOE scores.
+-   Temporal aggregation strategy.
+-   Rule for reference selection.
+-   Fixed or adaptive margin for Triplet Loss.
+-   Similarity index calibration strategy.
+-   Actual compatibility of the MediaPipe demo.
 
 ------------------------------------------------------------------------
 
-## 19. Riferimenti
+## 19. References
 
-Riferimenti indicati nella revisione progettuale:
+References indicated in the project review:
 
 -   FineFS Dataset: https://github.com/yanliji/FineFS-dataset
 -   MMFS: https://github.com/dingyn-Reno/MMFS
 -   PyTorch Geometric: https://pytorch-geometric.readthedocs.io/
 -   GATv2 paper: *How Attentive are Graph Attention Networks?* --- Brody
     et al., 2021.
--   FineGym, citato nella revisione come alternativa per ginnastica:
+-   FineGym, cited in the review as an alternative for gymnastics:
     https://sdolivia.github.io/FineGym/
 -   MMAction2 skeleton data documentation:
     https://github.com/open-mmlab/mmaction2
 
-I riferimenti FineGym e MMAction2 sono mantenuti come
-alternative/documentazione metodologica e non fanno parte del dataset
-primario scelto per l'MVP.
+FineGym and MMAction2 references are retained as methodological
+alternatives/documentation and are not part of the primary dataset
+chosen for the MVP.
 
 ------------------------------------------------------------------------
 
-## 20. Sintesi dell'architettura finale
+## 20. Final Architecture Summary
 
 ``` text
-FineFS (.npz)                  MMFS (opzionale)
+FineFS (.npz)                  MMFS (optional)
      |                              |
-     +---------- verifica ----------+
+     +--------- verification -------+
                     |
              Data harmonization
                     |
-        Selezione elemento + GOE
+         Element selection + GOE
                     |
-          Split per atleta/evento
+          Athlete/event split
                     |
-          Selezione finestra frame
+         Frame window selection
                     |
-        Aggregazione temporale
+          Temporal aggregation
                     |
-       Canonicalizzazione 3D
-   (root-centering, scale, yaw)
+           3D canonicalization
+      (root-centering, scale, yaw)
                     |
-          Grafo canonico 17 nodi
+         Canonical 17-node graph
           /                   \
    Node features           Edge features
           \                   /
@@ -1245,20 +1226,19 @@ FineFS (.npz)                  MMFS (opzionale)
                     |
              Graph embedding
                     |
-          Triplet Margin Loss
-          (margine configurabile)
+           Triplet Margin Loss
+          (configurable margin)
                     |
-          Embedding dell'atleta
+           Athlete embedding
                     |
-       Distanza dal riferimento
+        Distance from reference
                     |
-        Indice di similarità
+           Similarity index
                     |
-       Metriche + explainability
+       Metrics + explainability
 ```
 
-**Principio guida:** la GNN deve apprendere una metrica di qualità a
-partire da grafi coerenti e annotazioni verificabili. La qualità dei
-dati, la corretta separazione degli split e la validità della
-canonicalizzazione sono prerequisiti del modello, non dettagli
-secondari.
+**Guiding principle:** the GNN must learn a quality metric from
+consistent graphs and verifiable annotations. Data quality, proper split
+separation, and canonicalization validity are prerequisites of the
+model, not secondary details.

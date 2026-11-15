@@ -8,8 +8,8 @@ from torch_geometric.nn import GATv2Conv, global_mean_pool
 
 class GATv2Encoder(nn.Module):
     """
-    Encoder a grafi basato su due layer GATv2 edge-conditioned, LayerNorm per grafo singolo,
-    pooling globale e proiezione MLP verso lo spazio latente metrico.
+    Graph encoder based on two edge-conditioned GATv2 layers, per-graph LayerNorm,
+    global pooling, and MLP projection into the metric latent space.
     """
 
     def __init__(
@@ -65,12 +65,12 @@ class GATv2Encoder(nn.Module):
         batch: Optional[torch.Tensor] = None,
         return_attention_weights: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Tuple[torch.Tensor, torch.Tensor]]]]:
-        assert x.ndim == 2, f"Atteso x 2D (N_tot, in_channels), trovata shape {tuple(x.shape)}."
+        assert x.ndim == 2, f"Expected 2D x (N_tot, in_channels), got shape {tuple(x.shape)}."
         assert edge_index.ndim == 2 and edge_index.shape[0] == 2, (
-            f"Atteso edge_index (2, E_tot), trovata shape {tuple(edge_index.shape)}."
+            f"Expected edge_index (2, E_tot), got shape {tuple(edge_index.shape)}."
         )
         assert edge_attr.ndim == 2 and edge_attr.shape[0] == edge_index.shape[1], (
-            f"Mismatch archi tra edge_index ({edge_index.shape[1]}) e edge_attr ({edge_attr.shape[0]})."
+            f"Edge count mismatch between edge_index ({edge_index.shape[1]}) and edge_attr ({edge_attr.shape[0]})."
         )
 
         if batch is None:

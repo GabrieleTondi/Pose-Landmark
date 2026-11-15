@@ -8,13 +8,13 @@ from src.graph.topology import get_directed_edge_list
 
 def compute_node_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch.Tensor:
     """
-    Calcola le feature dei nodi a partire da P_bar di shape (17, 3).
-    - Se graph_cfg['node_feature_mode'] == 'baseline': restituisce Tensor (17, 3) float32 [x, y, z].
-    - Se graph_cfg['node_feature_mode'] == 'extended': restituisce Tensor (17, 5) float32 [x, y, z, r_i, sym_i].
+    Compute node features from P_bar of shape (17, 3).
+    - If graph_cfg['node_feature_mode'] == 'baseline': returns Tensor (17, 3) float32 [x, y, z].
+    - If graph_cfg['node_feature_mode'] == 'extended': returns Tensor (17, 5) float32 [x, y, z, r_i, sym_i].
     """
     coords = np.asarray(P_bar, dtype=np.float32)
     assert coords.shape == (17, 3) and np.isfinite(coords).all(), (
-        f"P_bar non valido: shape={coords.shape}, finite={np.isfinite(coords).all()}"
+        f"Invalid P_bar: shape={coords.shape}, finite={np.isfinite(coords).all()}"
     )
 
     mode = str(graph_cfg.get("node_feature_mode", "baseline"))
@@ -35,20 +35,20 @@ def compute_node_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch
         return tensor
 
     raise ValueError(
-        f"node_feature_mode='{mode}' non supportato. Valori ammessi: 'baseline', 'extended'."
+        f"Unsupported node_feature_mode='{mode}'. Allowed values: 'baseline', 'extended'."
     )
 
 
 def compute_edge_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch.Tensor:
     """
-    Calcola le feature dei 32 archi diretti restituendo un Tensor di shape (32, 5) float32:
-    colonne 0..2: versore direzionale unitario u_ij = (p_j - p_i) / (||p_j - p_i||_2 + eps)
-    colonna 3:    lunghezza ossea l_ij = ||p_j - p_i||_2
-    colonna 4:    coseno dell'angolo articolare cos(theta_abc) associato all'arco (i->j)
+    Compute features for the 32 directed edges, returning a Tensor of shape (32, 5) float32:
+    columns 0..2: unit direction vector u_ij = (p_j - p_i) / (||p_j - p_i||_2 + eps)
+    column 3:     bone length l_ij = ||p_j - p_i||_2
+    column 4:     cosine of the joint angle cos(theta_abc) associated with edge (i->j)
     """
     coords = np.asarray(P_bar, dtype=np.float64)
     assert coords.shape == (17, 3) and np.isfinite(coords).all(), (
-        f"P_bar non valido: shape={coords.shape}, finite={np.isfinite(coords).all()}"
+        f"Invalid P_bar: shape={coords.shape}, finite={np.isfinite(coords).all()}"
     )
 
     eps = float(graph_cfg.get("epsilon", 1e-8))
@@ -64,7 +64,7 @@ def compute_edge_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch
         edge_key = f"{i}->{j}"
         if edge_key not in triplets_map:
             raise KeyError(
-                f"Chiave '{edge_key}' mancante in graph_cfg['directed_edge_angle_triplets']."
+                f"Missing key '{edge_key}' in graph_cfg['directed_edge_angle_triplets']."
             )
         a, b, c = (int(idx) for idx in triplets_map[edge_key])
         v1 = coords[a] - coords[b]

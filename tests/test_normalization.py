@@ -11,7 +11,7 @@ from src.utils.config import load_all_configs
 
 
 def _make_realistic_h36m17_pose() -> np.ndarray:
-    """Genera una posa H36M-17 3D anatomicamente plausibile non degenerata."""
+    """Generate an anatomically plausible, non-degenerate 3D H36M-17 pose."""
     pts = np.array(
         [
             [0.01, 0.00, 0.02],   # 0: pelvis

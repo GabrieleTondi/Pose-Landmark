@@ -24,7 +24,7 @@ def _select_angle_nearest_positives(
     candidates: List[Data],
     top_k: int,
 ) -> List[Data]:
-    """Restringe i candidati positivi ai top-K più vicini nello spazio degli angoli ossei (edge_attr[:, 4])."""
+    """Restrict positive candidates to the top-K nearest in bone-angle space (edge_attr[:, 4])."""
     if top_k <= 0 or len(candidates) <= top_k:
         return candidates
     a_edge = getattr(anchor, "edge_attr", None)
@@ -48,12 +48,12 @@ def resolve_class_thresholds(
     train_cfg: Dict[str, Any],
 ) -> Tuple[float, float]:
     """
-    Calcola (tau_neg, tau_pos) per una singola classe a partire dai soli grafi reali.
-    Usa le soglie assolute da train_cfg['sampling'] quando i pool sono sufficienti,
-    altrimenti ricorre ai quantili configurati garantendo almeno 2 esibizioni positive se disponibili.
+    Compute (tau_neg, tau_pos) for a single class from real graphs only.
+    Uses absolute thresholds from train_cfg['sampling'] when pools are sufficient,
+    otherwise falls back to configured quantiles while ensuring at least 2 positive performances if available.
     """
     if len(real_class_graphs) == 0:
-        raise ValueError("Impossibile calcolare le soglie GOE su una classe priva di grafi reali.")
+        raise ValueError("Cannot compute GOE thresholds on a class with no real graphs.")
 
     s_cfg = train_cfg["sampling"]
     tier_rule = str(s_cfg.get("tier_rule", "threshold")).lower()
@@ -102,11 +102,11 @@ def partition_by_goe_tiers(
     fit_thresholds: Optional[Dict[str, Tuple[float, float]]] = None,
 ) -> Tuple[Dict[str, Dict[str, List[Data]]], Dict[str, Tuple[float, float]]]:
     """
-    Raggruppa i grafi per element_label e li divide in:
+    Group graphs by element_label and partition them into:
     pools[label] = {'pos': [...], 'mid': [...], 'neg_real': [...], 'neg_synth': [...]}
-    Se fit_thresholds è None (training set), calcola per ogni classe (tau_neg, tau_pos)
-    usando le soglie assolute da train_cfg o fallback ai quantili sui soli grafi reali.
-    Se fit_thresholds è fornito (val/test), usa le soglie già calcolate sul training set.
+    If fit_thresholds is None (training set), compute (tau_neg, tau_pos) per class
+    using absolute thresholds from train_cfg or quantile fallback on real graphs only.
+    If fit_thresholds is provided (val/test), reuse the thresholds computed on the training set.
     """
     by_class: Dict[str, List[Data]] = {}
     for g in graphs:
@@ -149,10 +149,10 @@ def partition_by_goe_tiers(
 
 class TripletDataset(torch.utils.data.Dataset):
     """
-    Dataset deterministico che restituisce all'indice idx una tupla di 4 elementi compatibile
-    con torch_geometric.loader.DataLoader:
+    Deterministic dataset returning a 4-element tuple at index idx compatible
+    with torch_geometric.loader.DataLoader:
     (graph_A, graph_P, graph_N, margin_alpha_tensor)
-    dove margin_alpha_tensor è torch.tensor(alpha, dtype=torch.float32).
+    where margin_alpha_tensor is torch.tensor(alpha, dtype=torch.float32).
     """
 
     def __init__(
@@ -165,7 +165,7 @@ class TripletDataset(torch.utils.data.Dataset):
     ) -> None:
         super().__init__()
         if num_triplets <= 0:
-            raise ValueError(f"num_triplets deve essere > 0, ricevuto {num_triplets}.")
+            raise ValueError(f"num_triplets must be > 0, got {num_triplets}.")
 
         self.split = str(split)
         self.num_triplets = int(num_triplets)
@@ -176,8 +176,8 @@ class TripletDataset(torch.utils.data.Dataset):
                     for g in cls_pools.get(pool_key, []):
                         if _is_augmented_graph(g):
                             raise ValueError(
-                                f"Grafo aumentato rilevato nel pool '{pool_key}' di split='{self.split}' "
-                                f"per classe '{cls_name}' ({g.sample_id})."
+                                f"Augmented graph detected in pool '{pool_key}' of split='{self.split}' "
+                                f"for class '{cls_name}' ({g.sample_id})."
                             )
 
         s_cfg = train_cfg["sampling"]
@@ -203,7 +203,7 @@ class TripletDataset(torch.utils.data.Dataset):
 
         if len(eligible_classes) == 0:
             raise ValueError(
-                f"Nessuna classe in split='{self.split}' possiede campioni sufficienti per costruire triplette."
+                f"No class in split='{self.split}' has enough samples to build triplets."
             )
 
         rng = np.random.default_rng(int(seed))
@@ -233,8 +233,8 @@ class TripletDataset(torch.utils.data.Dataset):
                 p_cands = [g for g in pos_pool if str(g.sample_id) != str(anchor.sample_id)]
             if len(p_cands) == 0:
                 raise ValueError(
-                    f"Impossibile selezionare Positive distinto da Anchor '{anchor.sample_id}' "
-                    f"nella classe '{c}'."
+                    f"Unable to select a Positive distinct from Anchor '{anchor.sample_id}' "
+                    f"in class '{c}'."
                 )
 
             p_close = [

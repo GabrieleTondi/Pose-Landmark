@@ -4,7 +4,7 @@ node_feature_dim: 3
 edge_feature_dim: 5
 epsilon: 1.0e-8
 
-# Nomi standard Human3.6M-17 verificati sui file .npz reali di FineFS:
+# Human3.6M-17 standard joint names verified on real FineFS .npz files:
 joint_names:
   0: "pelvis"
   1: "right_hip"
@@ -24,11 +24,11 @@ joint_names:
   15: "right_elbow"
   16: "right_wrist"
 
-# Indicatore di simmetria per modalità extended (-1: sx, 0: centro, +1: dx):
+# Symmetry indicator for extended mode (-1: left, 0: center, +1: right):
 joint_symmetry: [0, 1, 1, 1, -1, -1, -1, 0, 0, 0, 0, -1, -1, -1, 1, 1, 1]
 
-# 16 connessioni anatomiche non orientate (ossa b = 0..15) su albero connesso H36M a 17 nodi.
-# Ogni osso b=[i, j] genera l'arco diretto 2*b=(i->j) e l'arco diretto 2*b+1=(j->i), per un totale di 32 archi diretti.
+# 16 undirected anatomical connections (bones b = 0..15) on the 17-node H36M connected tree.
+# Each bone b=[i, j] generates directed edge 2*b=(i->j) and directed edge 2*b+1=(j->i), for a total of 32 directed edges.
 undirected_bones:
   - [0, 1]    # Bone 0: pelvis - right_hip
   - [1, 2]    # Bone 1: right_hip - right_knee
@@ -47,8 +47,8 @@ undirected_bones:
   - [14, 15]  # Bone 14: right_shoulder - right_elbow
   - [15, 16]  # Bone 15: right_elbow - right_wrist
 
-# Mappa deterministica delle 32 terne angolari [a, b, c] (angolo calcolato sul vertice centrale b)
-# per ciascun arco diretto "i->j":
+# Deterministic map of the 32 angle triplets [a, b, c] (angle computed at the central vertex b)
+# for each directed edge "i->j":
 directed_edge_angle_triplets:
   "0->1": [7, 0, 1]
   "1->0": [2, 1, 0]
@@ -83,15 +83,15 @@ directed_edge_angle_triplets:
   "15->16": [14, 15, 16]
   "16->15": [14, 15, 16]
 
-# Mappa dei sotto-alberi cinematici discendenti per la rotazione di Rodrigues (Settore 05 e Settore 08):
-# Chiave "parent->child": lista di tutti i nodi nel sotto-albero che ruotano attorno a "parent".
+# Map of descendant kinematic subtrees for Rodrigues rotation (Sector 05 and Sector 08):
+# Key "parent->child": list of all nodes in the subtree that rotate around "parent".
 kinematic_subtrees:
-  "11->12": [12, 13]      # Spalla SX -> ruota gomito SX e polso SX
-  "12->13": [13]          # Gomito SX -> ruota polso SX
-  "14->15": [15, 16]      # Spalla DX -> ruota gomito DX e polso DX
-  "15->16": [16]          # Gomito DX -> ruota polso DX
-  "4->5": [5, 6]          # Anca SX -> ruota ginocchio SX e caviglia SX
-  "5->6": [6]             # Ginocchio SX -> ruota caviglia SX
-  "1->2": [2, 3]          # Anca DX -> ruota ginocchio DX e caviglia DX
-  "2->3": [3]             # Ginocchio DX -> ruota caviglia DX
-  "0->7": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]  # Busto/schiena -> ruota tronco e arti superiori
+  "11->12": [12, 13]      # Left shoulder -> rotates left elbow and left wrist
+  "12->13": [13]          # Left elbow -> rotates left wrist
+  "14->15": [15, 16]      # Right shoulder -> rotates right elbow and right wrist
+  "15->16": [16]          # Right elbow -> rotates right wrist
+  "4->5": [5, 6]          # Left hip -> rotates left knee and left ankle
+  "5->6": [6]             # Left knee -> rotates left ankle
+  "1->2": [2, 3]          # Right hip -> rotates right knee and right ankle
+  "2->3": [3]             # Right knee -> rotates right ankle
+  "0->7": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]  # Torso/spine -> rotates upper body and arms

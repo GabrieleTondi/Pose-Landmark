@@ -9,7 +9,7 @@ from src.models.encoder import GATv2Encoder
 
 class SiameseGATv2(nn.Module):
     """
-    Wrapper Siamese a pesi strettamente condivisi attorno a una singola istanza di GATv2Encoder.
+    Siamese wrapper with strictly shared weights around a single GATv2Encoder instance.
     """
 
     def __init__(self, encoder: GATv2Encoder) -> None:

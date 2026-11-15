@@ -10,7 +10,7 @@ paths:
 dataset:
   primary_dataset: "finefs"
   enable_mmfs: false
-  skeleton_convention: "h36m17"  # Verificato su FineFS data/raw/finefs/skeleton/*.npz (Human3.6M 17-joint)
+  skeleton_convention: "h36m17"  # Verified on FineFS data/raw/finefs/skeleton/*.npz (Human3.6M 17-joint)
   target_elements:
     - "Camel Spin"
     - "Sit Spin"
@@ -24,11 +24,11 @@ windowing:
   min_keypoint_confidence: 0.20
 
 canonicalization:
-  horizontal_axes: [0, 1]       # Assi orizzontali: 0=X, 1=Y (verificato Z verticale su FineFS)
-  vertical_axis: 2              # Asse verticale: 2=Z
+  horizontal_axes: [0, 1]       # Horizontal axes: 0=X, 1=Y (Z verified as vertical on FineFS)
+  vertical_axis: 2              # Vertical axis: 2=Z
   scale_epsilon: 1.0e-4
   yaw_epsilon: 1.0e-4
-  # Indici per standard H36M-17 verificati su FineFS:
+  # Indices for H36M-17 standard verified on FineFS:
   pelvis_indices: [4, 1]        # [left_hip, right_hip]
   shoulder_indices: [11, 14]    # [left_shoulder, right_shoulder]
 

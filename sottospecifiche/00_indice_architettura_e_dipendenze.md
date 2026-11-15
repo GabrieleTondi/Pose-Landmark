@@ -1,43 +1,43 @@
-# 00 — Indice Master delle Sottospecifiche, Contratti API e Dipendenze
+# 00 — Master Index of Sub-Specifications, API Contracts, and Dependencies
 
-**Progetto:** Siamese GATv2 per la valutazione della qualità degli elementi nel pattinaggio di figura (AQA)  
-**Specifica Madre:** [specifica_implementativa_gnn_pattinaggio.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/specifica_implementativa_gnn_pattinaggio.md)  
-**Revisione Critica:** [Revisione critica progetto GNN sportivo.pdf](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/Revisione%20critica%20progetto%20GNN%20sportivo.pdf)
-
----
-
-## 1. Istruzioni per l'Agente / Modello Esecutore (Coding Guidelines)
-
-Questa suite di specifiche è progettata per guidare passo-passo l'implementazione senza ambiguità. Il modello incaricato di scrivere il codice deve attenersi alle seguenti **regole di ingegneria del software**:
-
-1. **Rispetto Tassativo delle Firme (API Contracts):** Non cambiare i nomi dei file, delle classi, delle funzioni, degli argomenti o delle chiavi YAML definiti in queste sottospecifiche. I moduli successivi importano esattamente i simboli specificati nella Tabella 3 qui sotto.
-2. **Validazione Immediata tramite Test:** Al termine di ogni singolo settore, eseguire il comando `pytest` indicato nella sezione *Definition of Done* del settore stesso. Non passare mai al settore successivo se un test fallisce.
-3. **Gestione dei Percorsi su Windows/Linux:** Utilizzare sempre `pathlib.Path` per costruire i percorsi dei file, evitando concatenazioni manuali di stringhe con `/` o `\`.
-4. **Tipizzazione e Docstring:** Includere sempre i type hint Python (`from typing import Optional, Dict, List, Tuple, Any`) e verificare le shape dei tensori con istruzioni `assert` esplicite ai confini di ogni funzione.
+**Project:** Siamese GATv2 for Figure Skating Element Quality Assessment (AQA)  
+**Parent Specification:** [specifica_implementativa_gnn_pattinaggio.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/specifica_implementativa_gnn_pattinaggio.md)  
+**Critical Review:** [Revisione critica progetto GNN sportivo.pdf](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/Revisione%20critica%20progetto%20GNN%20sportivo.pdf)
 
 ---
 
-## 2. Catalogo delle Sottospecifiche per Settore
+## 1. Instructions for the Agent / Executing Model (Coding Guidelines)
 
-| ID | File di Sottospecifica | Settore Tecnico | Sezioni Specifica Madre | Giorni Roadmap |
+This suite of specifications is designed to guide implementation step-by-step without ambiguity. The model tasked with writing the code must adhere to the following **software engineering rules**:
+
+1. **Strict Adherence to Signatures (API Contracts):** Do not change the names of files, classes, functions, arguments, or YAML keys defined in these sub-specifications. Subsequent modules import the exact symbols specified in Table 3 below.
+2. **Immediate Validation via Tests:** At the end of each individual sector, run the `pytest` command specified in the *Definition of Done* section of that sector. Never move to the next sector if any test fails.
+3. **Path Handling on Windows/Linux:** Always use `pathlib.Path` to construct file paths, avoiding manual string concatenation with `/` or `\`.
+4. **Typing and Docstrings:** Always include Python type hints (`from typing import Optional, Dict, List, Tuple, Any`) and verify tensor shapes with explicit `assert` statements at the boundaries of every function.
+
+---
+
+## 2. Catalog of Sub-Specifications by Sector
+
+| ID | Sub-Specification File | Technical Sector | Parent Spec Sections | Roadmap Days |
 | :- | :--- | :--- | :--- | :-: |
-| **01** | [01_spec_ambiente_hardware_e_configurazione.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/01_spec_ambiente_hardware_e_configurazione.md) | **Infrastruttura, Hardware Profiling & Schemi YAML Esatti** | §2, §13.1, §14, §15 | Giorno 1 |
-| **02** | [02_spec_dati_esplorazione_armonizzazione_split.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/02_spec_dati_esplorazione_armonizzazione_split.md) | **Data Engineering: FineFS, MMFS, `UnifiedSample` & Group Split** | §3.1–§3.5, §16.1 | Giorni 1–3 |
-| **03** | [03_spec_preprocessing_temporale_e_canonicalizzazione_3d.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/03_spec_preprocessing_temporale_e_canonicalizzazione_3d.md) | **Geometria 3D: Windowing Temporale & Canonicalizzazione** | §4, §5.1–§5.5, §16.2 | Giorno 4 |
-| **04** | [04_spec_costruzione_grafo_e_feature_engineering.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/04_spec_costruzione_grafo_e_feature_engineering.md) | **Graph Representation: Topologia 17 Nodi, `x`, `edge_attr` & PyG** | §6.1–§6.4, §16.3 | Giorno 5 |
-| **05** | [05_spec_triplet_sampling_loss_e_augmentation.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/05_spec_triplet_sampling_loss_e_augmentation.md) | **Metric Learning Pipeline: Triplet Sampler, Loss Adattiva & Rodrigues** | §8.1–§8.6 | Giorno 6 |
-| **06** | [06_spec_architettura_siamese_gatv2_e_training.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/06_spec_architettura_siamese_gatv2_e_training.md) | **Deep Learning: Architettura `SiameseGATv2`, Regolarizzazione & Training** | §7.1–§7.5, §16.4 | Giorni 7–10 |
-| **07** | [07_spec_valutazione_baseline_explainability_e_demo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/07_spec_valutazione_baseline_explainability_e_demo.md) | **Valutazione, Baseline Geometriche, Calibrazione $Q$, Explainability & Demo** | §9, §10, §11, §12, §16.5 | Giorni 11–13 |
-| **08** | [08_spec_visualizzazione_ux_ui_e_dashboard.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/08_spec_visualizzazione_ux_ui_e_dashboard.md) | **Visualizzazione Finale, UX/UI, Dashboard 3D, What-If Lab & Report Grafico** | §9, §10, §11, §12, §14 | Giorni 12–14 |
-| **09** | [09_piano_implementativo_operativo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/09_piano_implementativo_operativo.md) | **Piano Implementativo Operativo ("Vertical Slice & Fail-Fast")** | §17, §18 | Giorni 1–14 |
+| **01** | [01_spec_ambiente_hardware_e_configurazione.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/01_spec_ambiente_hardware_e_configurazione.md) | **Infrastructure, Hardware Profiling & Exact YAML Schemas** | §2, §13.1, §14, §15 | Day 1 |
+| **02** | [02_spec_dati_esplorazione_armonizzazione_split.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/02_spec_dati_esplorazione_armonizzazione_split.md) | **Data Engineering: FineFS, MMFS, `UnifiedSample` & Group Split** | §3.1–§3.5, §16.1 | Days 1–3 |
+| **03** | [03_spec_preprocessing_temporale_e_canonicalizzazione_3d.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/03_spec_preprocessing_temporale_e_canonicalizzazione_3d.md) | **3D Geometry: Temporal Windowing & Canonicalization** | §4, §5.1–§5.5, §16.2 | Day 4 |
+| **04** | [04_spec_costruzione_grafo_e_feature_engineering.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/04_spec_costruzione_grafo_e_feature_engineering.md) | **Graph Representation: 17-Node Topology, `x`, `edge_attr` & PyG** | §6.1–§6.4, §16.3 | Day 5 |
+| **05** | [05_spec_triplet_sampling_loss_e_augmentation.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/05_spec_triplet_sampling_loss_e_augmentation.md) | **Metric Learning Pipeline: Triplet Sampler, Adaptive Loss & Rodrigues** | §8.1–§8.6 | Day 6 |
+| **06** | [06_spec_architettura_siamese_gatv2_e_training.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/06_spec_architettura_siamese_gatv2_e_training.md) | **Deep Learning: `SiameseGATv2` Architecture, Regularization & Training** | §7.1–§7.5, §16.4 | Days 7–10 |
+| **07** | [07_spec_valutazione_baseline_explainability_e_demo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/07_spec_valutazione_baseline_explainability_e_demo.md) | **Evaluation, Geometric Baselines, $Q$ Calibration, Explainability & Demo** | §9, §10, §11, §12, §16.5 | Days 11–13 |
+| **08** | [08_spec_visualizzazione_ux_ui_e_dashboard.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/08_spec_visualizzazione_ux_ui_e_dashboard.md) | **Final Visualization, UX/UI, 3D Dashboard, What-If Lab & Graphical Report** | §9, §10, §11, §12, §14 | Days 12–14 |
+| **09** | [09_piano_implementativo_operativo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/09_piano_implementativo_operativo.md) | **Operational Implementation Plan ("Vertical Slice & Fail-Fast")** | §17, §18 | Days 1–14 |
 
 ---
 
-## 3. Registro Centrale dei Contratti API tra Moduli (Cross-Module Symbol Table)
+## 3. Central Registry of Cross-Module API Contracts (Cross-Module Symbol Table)
 
-Ogni modulo deve esportare esattamente i seguenti simboli pubblici affinché gli import tra settori diversi funzionino senza errori:
+Each module must export the exact following public symbols so that imports across different sectors work without errors:
 
-| Modulo Python | Simboli Pubblici Esportati (Classi / Funzioni) | Settore |
+| Python Module | Exported Public Symbols (Classes / Functions) | Sector |
 | :--- | :--- | :-: |
 | `src/utils/seed.py` | `seed_everything(seed: int = 42) -> None` | 01 |
 | `src/utils/hardware.py` | `get_compute_device(prefer_gpu: bool = True) -> torch.device`<br>`get_hardware_profile() -> Dict[str, Any]` | 01 |
@@ -47,7 +47,7 @@ Ogni modulo deve esportare esattamente i seguenti simboli pubblici affinché gli
 | `src/data/segmentation.py` | `extract_stable_window(keypoints: np.ndarray, confidence: Optional[np.ndarray], data_cfg: Dict) -> Tuple[Optional[np.ndarray], Dict[str, Any]]` | 03 |
 | `src/data/preprocessing.py` | `DegenerateSkeletonError` (Exception)<br>`canonicalize_frame_3d(joints: np.ndarray, data_cfg: Dict) -> Tuple[np.ndarray, Dict[str, float]]`<br>`canonicalize_window_3d(window_joints: np.ndarray, data_cfg: Dict) -> Tuple[np.ndarray, Dict[str, Any]]` | 03 |
 | `src/graph/topology.py` | `build_canonical_edge_index(graph_cfg: Dict) -> torch.Tensor` *(shape `(2, 32)`, `torch.long`)*<br>`get_directed_edge_list(graph_cfg: Dict) -> List[Tuple[int, int]]` | 04 |
-| `src/graph/features.py` | `compute_node_features(P_bar: np.ndarray, graph_cfg: Dict) -> torch.Tensor` *(shape `(17, 3)` o `(17, 5)`)*<br>`compute_edge_features(P_bar: np.ndarray, graph_cfg: Dict) -> torch.Tensor` *(shape `(32, 5)`)* | 04 |
+| `src/graph/features.py` | `compute_node_features(P_bar: np.ndarray, graph_cfg: Dict) -> torch.Tensor` *(shape `(17, 3)` or `(17, 5)`)*<br>`compute_edge_features(P_bar: np.ndarray, graph_cfg: Dict) -> torch.Tensor` *(shape `(32, 5)`)* | 04 |
 | `src/graph/builder.py` | `build_pyg_graph(P_bar: np.ndarray, sample_meta: Dict[str, Any], graph_cfg: Dict) -> Data` | 04 |
 | `src/training/augmentation.py` | `rodrigues_rotation_matrix(axis: np.ndarray, angle_rad: float) -> np.ndarray`<br>`rotate_kinematic_subtree(P_bar: np.ndarray, joint_idx: int, child_idx: int, axis: np.ndarray, angle_deg: float, graph_cfg: Dict) -> np.ndarray`<br>`generate_synthetic_negatives(train_graphs: List[Data], data_cfg: Dict, graph_cfg: Dict, train_cfg: Dict) -> List[Data]` | 05 |
 | `src/training/triplet_sampler.py` | `partition_by_goe_tiers(graphs: List[Data], train_cfg: Dict, fit_thresholds: Optional[Dict] = None) -> Tuple[Dict, Dict]`<br>`TripletDataset(torch.utils.data.Dataset)` | 05 |
@@ -60,25 +60,25 @@ Ogni modulo deve esportare esattamente i seguenti simboli pubblici affinché gli
 
 ---
 
-## 4. Grafo delle Dipendenze e Gating Checkpoints
+## 4. Dependency Graph and Gating Checkpoints
 
 ```mermaid
 flowchart TD
-    S01["Settore 01: Infrastruttura, GPU Profiling & Config YAML"]
-    S02["Settore 02: Data Audit FineFS/MMFS, Schema Unificato & Group Split"]
-    S03["Settore 03: Windowing Temporale & Canonicalizzazione 3D"]
-    S04["Settore 04: Costruzione Grafo 17 Nodi, edge_attr & Serializzazione PyG"]
-    S05["Settore 05: Triplet Sampler Intra-Classe, Loss & Augmentation"]
-    S06["Settore 06: Modello Siamese GATv2 & Training Loop"]
-    S07["Settore 07: Baseline Non-Neurali, Metriche, Calibrazione Q, XAI & Demo"]
-    S08["Settore 08: UX/UI Dashboard Interattiva 3D, What-If Lab & Figure Report"]
+    S01["Sector 01: Infrastructure, GPU Profiling & YAML Config"]
+    S02["Sector 02: Data Audit FineFS/MMFS, Unified Schema & Group Split"]
+    S03["Sector 03: Temporal Windowing & 3D Canonicalization"]
+    S04["Sector 04: 17-Node Graph Construction, edge_attr & PyG Serialization"]
+    S05["Sector 05: Intra-Class Triplet Sampler, Loss & Augmentation"]
+    S06["Sector 06: Siamese GATv2 Model & Training Loop"]
+    S07["Sector 07: Non-Neural Baselines, Metrics, Q Calibration, XAI & Demo"]
+    S08["Sector 08: Interactive 3D Dashboard UX/UI, What-If Lab & Figure Report"]
 
-    S01 -->|"Gate 1: PyG funzionante + Seed e YAML validati"| S02
-    S02 -->|"Gate 2: Assi 3D/Joint verificati + Zero Leakage negli Split"| S03
-    S03 -->|"Gate 3: Test invarianza roto-traslazione/scala superati"| S04
-    S04 -->|"Gate 4: Grafi PyG (17 nodi, 32 archi, edge_attr finiti) su disco"| S05
-    S04 -->|"Grafi serializzati pronti"| S07
-    S05 -->|"Gate 5: Triplette intra-classe e augmentation solo su train"| S06
-    S06 -->|"Gate 6: Best Checkpoint salvato senza collasso latente"| S07
-    S07 -->|"Gate 7: Metriche, Prototipi z_R, Medoidi G_R, Beta e Attenzione pronti"| S08
+    S01 -->|"Gate 1: PyG working + Seed and YAML validated"| S02
+    S02 -->|"Gate 2: 3D Axes/Joints verified + Zero Leakage in Splits"| S03
+    S03 -->|"Gate 3: Roto-translation/scale invariance tests passed"| S04
+    S04 -->|"Gate 4: PyG graphs (17 nodes, 32 edges, finite edge_attr) on disk"| S05
+    S04 -->|"Serialized graphs ready"| S07
+    S05 -->|"Gate 5: Intra-class triplets and augmentation on train only"| S06
+    S06 -->|"Gate 6: Best Checkpoint saved without latent collapse"| S07
+    S07 -->|"Gate 7: Metrics, Prototypes z_R, Medoids G_R, Beta and Attention ready"| S08
 ```

@@ -4,7 +4,7 @@ import numpy as np
 
 
 class DegenerateSkeletonError(ValueError):
-    """Sollevata quando uno scheletro ha lunghezza del busto nulla/degenere o vettore anca/spalla nullo."""
+    """Raised when a skeleton has zero/degenerate torso length or zero hip/shoulder vector."""
 
 
 def canonicalize_frame_3d(
@@ -12,15 +12,15 @@ def canonicalize_frame_3d(
     data_cfg: Dict[str, Any],
 ) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Applica Root-Centering, Scale Normalization e Yaw Alignment a un singolo frame di shape (17, 3).
-    Restituisce:
-    - aligned: np.ndarray di shape (17, 3), dtype float32
+    Apply Root-Centering, Scale Normalization, and Yaw Alignment to a single frame of shape (17, 3).
+    Returns:
+    - aligned: np.ndarray of shape (17, 3), dtype float32
     - stats: {'torso_length': float, 'yaw_angle_rad': float}
-    Solleva DegenerateSkeletonError se il frame contiene NaN/Inf o denominatori <= epsilon.
+    Raises DegenerateSkeletonError if the frame contains NaN/Inf or denominators <= epsilon.
     """
     pts = np.asarray(joints, dtype=np.float64)
     if pts.shape != (17, 3) or not np.isfinite(pts).all():
-        raise DegenerateSkeletonError("Frame shape errata o presenza di NaN/Inf.")
+        raise DegenerateSkeletonError("Invalid frame shape or presence of NaN/Inf.")
 
     c_cfg = data_cfg["canonicalization"]
     hip_l, hip_r = int(c_cfg["pelvis_indices"][0]), int(c_cfg["pelvis_indices"][1])
@@ -29,18 +29,18 @@ def canonicalize_frame_3d(
     scale_eps = float(c_cfg["scale_epsilon"])
     yaw_eps = float(c_cfg["yaw_epsilon"])
 
-    # 1. Root-Centering: porta il punto medio delle anche nell'origine (0, 0, 0)
+    # 1. Root-Centering: move the midpoint of the hips to the origin (0, 0, 0)
     pelvis = 0.5 * (pts[hip_l] + pts[hip_r])
     centered = pts - pelvis
 
-    # 2. Scale Normalization: divisione per lunghezza 3D del busto (pelvis -> shoulders_mid)
+    # 2. Scale Normalization: divide by 3D torso length (pelvis -> shoulders_mid)
     shoulders_mid = 0.5 * (centered[sh_l] + centered[sh_r])
     torso_length = float(np.linalg.norm(shoulders_mid))
     if torso_length <= scale_eps:
-        raise DegenerateSkeletonError(f"Torso length degenere: {torso_length}")
+        raise DegenerateSkeletonError(f"Degenerate torso length: {torso_length}")
     scaled = centered / torso_length
 
-    # 3. Yaw Alignment sul piano orizzontale (h_ax0, h_ax1)
+    # 3. Yaw Alignment on the horizontal plane (h_ax0, h_ax1)
     hip_vec = scaled[hip_r] - scaled[hip_l]
     vx = float(hip_vec[h_ax0])
     vy = float(hip_vec[h_ax1])
@@ -52,7 +52,7 @@ def canonicalize_frame_3d(
         horiz_norm = float(np.hypot(vx, vy))
         if horiz_norm <= yaw_eps:
             raise DegenerateSkeletonError(
-                "Impossibile determinare l'angolo di yaw: anche e spalle allineate verticalmente."
+                "Unable to determine yaw angle: hips and shoulders are vertically aligned."
             )
 
     angle = float(np.arctan2(vy, vx))
@@ -75,14 +75,14 @@ def canonicalize_window_3d(
     data_cfg: Dict[str, Any],
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """
-    Applica canonicalize_frame_3d a ciascun frame valido della finestra (T_win, 17, 3)
-    e poi calcola la posa media P_bar = mean(P_aligned, axis=0) di shape (17, 3).
-    Solleva DegenerateSkeletonError se il numero di frame canonicalizzati con successo è < min_valid_frames.
+    Apply canonicalize_frame_3d to each valid frame in the window (T_win, 17, 3)
+    and then compute the mean pose P_bar = mean(P_aligned, axis=0) of shape (17, 3).
+    Raises DegenerateSkeletonError if the number of successfully canonicalized frames is < min_valid_frames.
     """
     win = np.asarray(window_joints, dtype=np.float32)
     if win.ndim != 3 or win.shape[1:] != (17, 3):
         raise DegenerateSkeletonError(
-            f"Atteso window_joints di shape (T_win, 17, 3), trovata {win.shape}"
+            f"Expected window_joints of shape (T_win, 17, 3), got {win.shape}"
         )
 
     aligned_frames: List[np.ndarray] = []
@@ -98,7 +98,7 @@ def canonicalize_window_3d(
     min_valid_frames = int(data_cfg.get("windowing", {}).get("min_valid_frames", 3))
     if len(aligned_frames) < min_valid_frames:
         raise DegenerateSkeletonError(
-            f"Troppi frame degeneri nella finestra: {len(aligned_frames)} validi < {min_valid_frames}"
+            f"Too many degenerate frames in window: {len(aligned_frames)} valid < {min_valid_frames}"
         )
 
     stack = np.stack(aligned_frames, axis=0)

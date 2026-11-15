@@ -9,21 +9,21 @@ def extract_stable_window(
     data_cfg: Dict[str, Any],
 ) -> Tuple[Optional[np.ndarray], Dict[str, Any]]:
     """
-    Estrae la finestra centrale di frame validi dal segmento keypoints di shape (T_seg, 17, 3).
-    Restituisce:
-    - window_joints: np.ndarray di shape (T_win, 17, 3) in float32, oppure None se il segmento è invalido
-    - info: dict con {'status': 'ok'|'discarded', 'reason': ..., 'selected_indices': [...]}
+    Extract the central window of valid frames from the keypoints segment of shape (T_seg, 17, 3).
+    Returns:
+    - window_joints: np.ndarray of shape (T_win, 17, 3) in float32, or None if the segment is invalid
+    - info: dict with {'status': 'ok'|'discarded', 'reason': ..., 'selected_indices': [...]}
     """
     keypoints_arr = np.asarray(keypoints, dtype=np.float32)
     assert keypoints_arr.ndim == 3 and keypoints_arr.shape[1:] == (17, 3), (
-        f"Atteso keypoints di shape (T_seg, 17, 3), trovata {keypoints_arr.shape}"
+        f"Expected keypoints of shape (T_seg, 17, 3), got {keypoints_arr.shape}"
     )
 
     conf_arr: Optional[np.ndarray] = None
     if confidence is not None:
         conf_arr = np.asarray(confidence, dtype=np.float32)
         assert conf_arr.shape == (keypoints_arr.shape[0], 17), (
-            f"Attesa confidence di shape {(keypoints_arr.shape[0], 17)}, trovata {conf_arr.shape}"
+            f"Expected confidence of shape {(keypoints_arr.shape[0], 17)}, got {conf_arr.shape}"
         )
 
     w_cfg = data_cfg["windowing"]

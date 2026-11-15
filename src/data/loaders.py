@@ -10,14 +10,14 @@ from src.data.harmonization import UnifiedSample
 
 
 def _rodrigues_z(points: np.ndarray, angle_rad: float) -> np.ndarray:
-    """Ruota un array (N, 3) attorno all'asse verticale Z."""
+    """Rotate an (N, 3) array around the vertical Z axis."""
     c, s = np.cos(angle_rad), np.sin(angle_rad)
     rot = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]], dtype=np.float64)
     return points @ rot.T
 
 
 def _rodrigues_axis(vec: np.ndarray, axis: np.ndarray, angle_rad: float) -> np.ndarray:
-    """Ruota un vettore 3D attorno a un asse unitario mediante formula di Rodrigues."""
+    """Rotate a 3D vector around a unit axis using Rodrigues' rotation formula."""
     k = axis / (float(np.linalg.norm(axis)) + 1e-12)
     c = float(np.cos(angle_rad))
     s = float(np.sin(angle_rad))
@@ -31,7 +31,7 @@ def _rotate_limb_subtree(
     axis: np.ndarray,
     angle_deg: float,
 ) -> np.ndarray:
-    """Applica rotazione rigida ai joint discendenti attorno al joint pivot."""
+    """Apply rigid rotation to descendant joints around the pivot joint."""
     out = pose.copy()
     pivot = out[pivot_idx].copy()
     angle_rad = float(np.deg2rad(angle_deg))
@@ -43,8 +43,8 @@ def _rotate_limb_subtree(
 
 def _base_element_template(element_label: str) -> np.ndarray:
     """
-    Restituisce un template Human3.6M-17 3D anatomicamente plausibile (busto ~0.50m)
-    coerente con configs/data.yaml e configs/graph.yaml:
+    Return an anatomically plausible 3D Human3.6M-17 template (torso ~0.50m)
+    consistent with configs/data.yaml and configs/graph.yaml:
     0=pelvis, 1=r_hip, 2=r_knee, 3=r_ankle, 4=l_hip, 5=l_knee, 6=l_ankle,
     7=spine, 8=thorax, 9=neck, 10=head,
     11=l_shoulder, 12=l_elbow, 13=l_wrist, 14=r_shoulder, 15=r_elbow, 16=r_wrist.
@@ -56,7 +56,7 @@ def _base_element_template(element_label: str) -> np.ndarray:
             [0.12, 0.02, -0.42],  # 2: right_knee
             [0.12, 0.00, -0.84],  # 3: right_ankle
             [-0.11, 0.00, 0.00],  # 4: left_hip
-            [-0.12, 0.02, -0.42], # 5: left_knee (gamba d'appoggio)
+            [-0.12, 0.02, -0.42], # 5: left_knee (supporting leg)
             [-0.12, 0.00, -0.84], # 6: left_ankle
             [0.00, -0.02, 0.25],  # 7: spine
             [0.00, 0.00, 0.50],   # 8: thorax
@@ -74,7 +74,7 @@ def _base_element_template(element_label: str) -> np.ndarray:
 
     label_lower = element_label.lower()
     if "camel" in label_lower:
-        # Busto inclinato avanti in posizione T, gamba destra libera tesa orizzontale indietro
+        # Torso leaning forward in T-position, free right leg extended horizontally backward
         camel = base.copy()
         for idx in (7, 8, 9, 10, 11, 14):
             y_old = camel[idx, 1]
@@ -90,7 +90,7 @@ def _base_element_template(element_label: str) -> np.ndarray:
         return camel
 
     if "sit" in label_lower:
-        # Ginocchio sinistro piegato, gamba destra libera distesa avanti, braccia raccolte in avanti
+        # Left knee bent, free right leg extended forward, arms tucked forward
         sit = base.copy()
         sit[5] = [-0.12, 0.34, -0.05]
         sit[6] = [-0.12, 0.02, -0.47]
@@ -103,7 +103,7 @@ def _base_element_template(element_label: str) -> np.ndarray:
         return sit
 
     if "layback" in label_lower:
-        # Busto, spalle e testa inarcati indietro, braccia aperte, gamba libera dietro in attitude
+        # Torso, shoulders, and head arched backward, arms open, free leg behind in attitude
         lay = base.copy()
         lay[7] = [0.00, -0.10, 0.24]
         lay[8] = [0.00, -0.22, 0.46]
@@ -124,13 +124,13 @@ def _base_element_template(element_label: str) -> np.ndarray:
 
 def inspect_npz_file(npz_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Apre un file .npz e restituisce:
+    Open an .npz file and return:
     - 'valid': bool
     - 'keys': List[str]
     - 'shapes': Dict[str, Tuple[int, ...]]
     - 'dtypes': Dict[str, str]
     - 'has_nan': bool
-    - 'is_3d_nonzero': bool (True se l'asse Z ha varianza > 1e-6)
+    - 'is_3d_nonzero': bool (True if the Z axis has variance > 1e-6)
     - 'error': Optional[str]
     """
     file_path = Path(npz_path)
@@ -169,7 +169,7 @@ def inspect_npz_file(npz_path: Union[str, Path]) -> Dict[str, Any]:
                 "dtypes": dtypes,
                 "has_nan": has_nan,
                 "is_3d_nonzero": is_3d_nonzero,
-                "error": None if len(keys) > 0 else "Archivio .npz vuoto.",
+                "error": None if len(keys) > 0 else "Empty .npz archive.",
             }
     except Exception as exc:
         return {
@@ -184,7 +184,7 @@ def inspect_npz_file(npz_path: Union[str, Path]) -> Dict[str, Any]:
 
 
 def _inspect_annotation_file(ann_path: Path) -> Dict[str, Any]:
-    """Ispeziona in sicurezza un file di annotazione (.json/.csv/.pkl/.txt)."""
+    """Safely inspect an annotation file (.json/.csv/.pkl/.txt)."""
     suffix = ann_path.suffix.lower()
     info: Dict[str, Any] = {"file": str(ann_path), "extension": suffix}
     try:
@@ -218,8 +218,8 @@ def _inspect_annotation_file(ann_path: Path) -> Dict[str, Any]:
 
 def audit_finefs_directory(raw_dir: Union[str, Path]) -> Dict[str, Any]:
     """
-    Scansiona raw_dir, ispeziona i file .npz e i file di annotazione (.json/.csv/.pkl),
-    e restituisce un report completo salvabile in reports/finefs_inventory.json.
+    Scan raw_dir, inspect .npz files and annotation files (.json/.csv/.pkl),
+    and return a complete report suitable for saving to reports/finefs_inventory.json.
     """
     raw_path = Path(raw_dir)
     if not raw_path.exists():
@@ -282,16 +282,16 @@ def audit_finefs_directory(raw_dir: Union[str, Path]) -> Dict[str, Any]:
 
 def extract_3d_keypoints_from_array(arr: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
     """
-    Normalizza le diverse shape possibili degli array HRNet/FineFS in:
-    - keypoints_3d: np.ndarray di shape (T, 17, 3) in float32
-    - confidence: Optional[np.ndarray] di shape (T, 17) in float32
-    Gestisce i casi:
+    Normalize the various possible HRNet/FineFS array shapes into:
+    - keypoints_3d: np.ndarray of shape (T, 17, 3) in float32
+    - confidence: Optional[np.ndarray] of shape (T, 17) in float32
+    Handles the following cases:
     - shape (T, 17, 3) -> keypoints=arr, conf=None
     - shape (T, 17, 4) -> keypoints=arr[:, :, :3], conf=arr[:, :, 3]
-    - shape (1, T, 17, 3) o (M, T, 17, 3) -> prende la persona principale arr[0]
-    - shape (1, T, 17, 4) o (M, T, 17, 4) -> prende arr[0, :, :, :3], arr[0, :, :, 3]
-    - shape (T, 51) -> reshape a (T, 17, 3)
-    Solleva ValueError per qualsiasi altra shape non riconducibile a 17 joint 3D.
+    - shape (1, T, 17, 3) or (M, T, 17, 3) -> take primary person arr[0]
+    - shape (1, T, 17, 4) or (M, T, 17, 4) -> take arr[0, :, :, :3], arr[0, :, :, 3]
+    - shape (T, 51) -> reshape to (T, 17, 3)
+    Raises ValueError for any other shape not convertible to 17 3D joints.
     """
     data = np.asarray(arr)
 
@@ -322,8 +322,8 @@ def extract_3d_keypoints_from_array(arr: np.ndarray) -> Tuple[np.ndarray, Option
         return kpts, None
 
     raise ValueError(
-        f"Shape array non riconducibile a 17 joint 3D: {data.shape}. "
-        "Attese (T,17,3), (T,17,4), (M,T,17,3/4) o (T,51)."
+        f"Array shape cannot be converted to 17 3D joints: {data.shape}. "
+        "Expected (T,17,3), (T,17,4), (M,T,17,3/4), or (T,51)."
     )
 
 
@@ -331,7 +331,7 @@ def map_finefs_spin_label(
     element_code: str,
     include_change_foot: bool = False,
 ) -> Optional[str]:
-    """Mappa i codici ISU di FineFS alle tre classi target di trottole dell'MVP."""
+    """Map FineFS ISU codes to the three target spin classes of the MVP."""
     code = str(element_code).strip().upper()
     camel_prefixes = ("FCSP", "CSP", "CCSP") if include_change_foot else ("FCSP", "CSP")
     sit_prefixes = ("FSSP", "SSP", "CSSP") if include_change_foot else ("FSSP", "SSP")
@@ -347,15 +347,15 @@ def map_finefs_spin_label(
 
 
 def _parse_finefs_time_range(time_str: str, fps: int) -> Tuple[int, int]:
-    """Converte la stringa FineFS 'm-s,m-s' in indici di frame [start_frame, end_frame)."""
+    """Convert FineFS 'm-s,m-s' string into frame indices [start_frame, end_frame)."""
     parts = [p.strip() for p in str(time_str).split(",")]
     if len(parts) != 2:
-        raise ValueError(f"Formato intervallo temporale FineFS non valido: {time_str}")
+        raise ValueError(f"Invalid FineFS time range format: {time_str}")
 
     def _to_sec(token: str) -> int:
         segs = token.split("-")
         if len(segs) != 2:
-            raise ValueError(f"Timestamp '{token}' non in formato mm-ss.")
+            raise ValueError(f"Timestamp '{token}' is not in mm-ss format.")
         return int(segs[0]) * 60 + int(segs[1])
 
     start_sec = _to_sec(parts[0])
@@ -365,9 +365,9 @@ def _parse_finefs_time_range(time_str: str, fps: int) -> Tuple[int, int]:
 
 def _compute_normalized_judge_goe(elem_meta: Dict[str, Any]) -> Optional[float]:
     """
-    Estrae il grado di qualità normalizzato sulla scala ISU [-5.0, +5.0] a partire dai voti
-    dei giudici ('judge_score', media tagliata escludendo eventuali sentinelle/outlier),
-    con fallback su goe / (0.1 * bv). Restituisce None per elementi invalidi/non valutati.
+    Extract the normalized quality grade on the ISU [-5.0, +5.0] scale from judge marks
+    ('judge_score', trimmed mean excluding sentinels/outliers), with fallback to
+    goe / (0.1 * bv). Returns None for invalid/unscored elements.
     """
     bv = float(elem_meta.get("bv") or 0.0)
     raw_goe = elem_meta.get("goe")
@@ -397,16 +397,16 @@ def load_finefs_samples(
     fps: int = 25,
 ) -> Tuple[List[UnifiedSample], Dict[str, Any]]:
     """
-    Carica i segmenti reali del dataset FineFS da raw_dir (annotation/*.json + skeleton/*.npz),
-    convertendoli in UnifiedSample validati per le classi in data_cfg['dataset']['target_elements'].
-    Restituisce (samples, report).
+    Load real FineFS dataset segments from raw_dir (annotation/*.json + skeleton/*.npz),
+    converting them into validated UnifiedSample objects for classes in data_cfg['dataset']['target_elements'].
+    Returns (samples, report).
     """
     raw_path = Path(raw_dir)
     ann_dir = raw_path / "annotation"
     skel_dir = raw_path / "skeleton"
     if not ann_dir.is_dir() or not skel_dir.is_dir():
         raise FileNotFoundError(
-            f"Directory FineFS incomplete in {raw_path}: attese 'annotation/' e 'skeleton/'."
+            f"Incomplete FineFS directories in {raw_path}: expected 'annotation/' and 'skeleton/'."
         )
 
     target_elements = set(data_cfg["dataset"]["target_elements"])
@@ -490,7 +490,7 @@ def load_finefs_samples(
                 sample_id=f"{performance_id}_{elem_key}",
                 dataset_id="finefs",
                 performance_id=performance_id,
-                athlete_id=None,  # FineFS anonimizza gli atleti nei .json
+                athlete_id=None,  # FineFS anonymizes athletes in .json files
                 element_label=mapped_label,
                 start_frame=sf_clamped,
                 end_frame=ef_clamped - 1,
@@ -534,15 +534,15 @@ def generate_mock_finefs_samples(
     seed: int = 42,
 ) -> List[UnifiedSample]:
     """
-    Genera una collezione di UnifiedSample biomeccanicamente plausibili a 17 joint (standard H36M-17)
-    con diversi atleti, rotazioni di piroetta frame-by-frame, traslazioni, scale e punteggi GOE in [-3.0, +3.0]
-    correlati alla precisione degli angoli articolari.
-    Usato per i test automatici pytest e per verificare la pipeline end-to-end.
+    Generate a collection of biomechanically plausible 17-joint UnifiedSample objects (H36M-17 standard)
+    with different athletes, frame-by-frame spin rotations, translations, scales, and GOE scores in [-3.0, +3.0]
+    correlated with joint angle precision.
+    Used for automated pytest tests and end-to-end pipeline verification.
     """
     rng = np.random.default_rng(seed)
     samples: List[UnifiedSample] = []
     num_frames = 25
-    omega = float(2.0 * np.pi / 9.0)  # giro completo sulla finestra da 9 frame
+    omega = float(2.0 * np.pi / 9.0)  # full rotation over the 9-frame window
 
     for p in range(num_performances):
         athlete_id = f"ath_{p // 2:03d}"
@@ -552,7 +552,7 @@ def generate_mock_finefs_samples(
             template = _base_element_template(element_label)
             goe = float(np.round(rng.uniform(-3.0, 3.0), 3))
 
-            # Deviazione biomeccanica reale correlata al GOE sulla gamba libera destra (1->2->3 in H36M-17)
+            # Real biomechanical deviation correlated with GOE on the free right leg (1->2->3 in H36M-17)
             angular_dev_deg = 5.0 * abs(goe) if goe < 0.0 else max(0.0, 1.5 - goe) * 2.0
             pose_elem = template.copy()
             if angular_dev_deg > 0.0:
@@ -579,7 +579,7 @@ def generate_mock_finefs_samples(
             frames = np.zeros((num_frames, 17, 3), dtype=np.float32)
             for t in range(num_frames):
                 frame_pose = pose_elem.copy()
-                # Transitorio di ingresso (primi 4 frame) e uscita (ultimi 4 frame) sul braccio SX (11->12->13)
+                # Entry (first 4 frames) and exit (last 4 frames) transient on left arm (11->12->13)
                 if t < 4 or t >= num_frames - 4:
                     transient_deg = 12.0 if t < 4 else -12.0
                     frame_pose = _rotate_limb_subtree(
@@ -628,7 +628,7 @@ def _split_coverage_score(
     sample_groups: Dict[str, str],
     class_medians: Dict[str, float],
 ) -> Tuple[int, int]:
-    """Conta quante coppie (split, classe) hanno sia GOE >= mediana sia GOE < mediana."""
+    """Count how many (split, class) pairs have both GOE >= median and GOE < median."""
     buckets: Dict[Tuple[str, str], List[float]] = {}
     for s in samples:
         split_name = group_split_map[sample_groups[s.sample_id]]
@@ -654,12 +654,12 @@ def create_grouped_splits(
     data_cfg: Dict[str, Any],
 ) -> Dict[str, List[str]]:
     """
-    Suddivide i sample_id in {'train': [...], 'val': [...], 'test': [...]}
-    garantendo che tutti i campioni con lo stesso athlete_id e performance_id
-    cadano nello stesso identico split.
+    Split sample_ids into {'train': [...], 'val': [...], 'test': [...]}
+    ensuring that all samples with the same athlete_id and performance_id
+    fall into the exact same split.
     """
     if len(samples) == 0:
-        raise ValueError("Impossibile creare split su lista samples vuota.")
+        raise ValueError("Cannot create splits on an empty samples list.")
 
     perf_to_group: Dict[str, str] = {}
     sample_groups: Dict[str, str] = {}
@@ -670,7 +670,7 @@ def create_grouped_splits(
         prev_group = perf_to_group.get(s.performance_id)
         if prev_group is not None and prev_group != group_id:
             raise ValueError(
-                f"Inconsistenza gruppo per performance_id={s.performance_id}: "
+                f"Group inconsistency for performance_id={s.performance_id}: "
                 f"{prev_group} vs {group_id}"
             )
         perf_to_group[s.performance_id] = group_id
@@ -681,8 +681,8 @@ def create_grouped_splits(
     n_groups = len(unique_groups)
     if n_groups < 3:
         raise ValueError(
-            f"Servono almeno 3 gruppi distinti (atleti/esibizioni) per split train/val/test, "
-            f"trovati {n_groups}."
+            f"At least 3 distinct groups (athletes/performances) are required for train/val/test split, "
+            f"found {n_groups}."
         )
 
     splits_cfg = data_cfg["splits"]
@@ -751,15 +751,15 @@ def create_grouped_splits(
     train_perfs = {s.performance_id for s in samples if s.sample_id in train_ids}
     val_perfs = {s.performance_id for s in samples if s.sample_id in val_ids}
     test_perfs = {s.performance_id for s in samples if s.sample_id in test_ids}
-    assert train_perfs.isdisjoint(val_perfs), "LEAKAGE RILEVATO: train e val condividono performance_id!"
-    assert train_perfs.isdisjoint(test_perfs), "LEAKAGE RILEVATO: train e test condividono performance_id!"
-    assert val_perfs.isdisjoint(test_perfs), "LEAKAGE RILEVATO: val e test condividono performance_id!"
+    assert train_perfs.isdisjoint(val_perfs), "LEAKAGE DETECTED: train and val share performance_id!"
+    assert train_perfs.isdisjoint(test_perfs), "LEAKAGE DETECTED: train and test share performance_id!"
+    assert val_perfs.isdisjoint(test_perfs), "LEAKAGE DETECTED: val and test share performance_id!"
 
     train_aths = {s.athlete_id for s in samples if s.sample_id in train_ids and s.athlete_id is not None}
     val_aths = {s.athlete_id for s in samples if s.sample_id in val_ids and s.athlete_id is not None}
     test_aths = {s.athlete_id for s in samples if s.sample_id in test_ids and s.athlete_id is not None}
-    assert train_aths.isdisjoint(val_aths), "LEAKAGE RILEVATO: train e val condividono athlete_id!"
-    assert train_aths.isdisjoint(test_aths), "LEAKAGE RILEVATO: train e test condividono athlete_id!"
-    assert val_aths.isdisjoint(test_aths), "LEAKAGE RILEVATO: val e test condividono athlete_id!"
+    assert train_aths.isdisjoint(val_aths), "LEAKAGE DETECTED: train and val share athlete_id!"
+    assert train_aths.isdisjoint(test_aths), "LEAKAGE DETECTED: train and test share athlete_id!"
+    assert val_aths.isdisjoint(test_aths), "LEAKAGE DETECTED: val and test share athlete_id!"
 
     return split_dict
