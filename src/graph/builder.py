@@ -30,7 +30,13 @@ def build_pyg_graph(
         f"Invalid P_bar for build_pyg_graph: shape={coords.shape}"
     )
 
-    x = compute_node_features(coords, graph_cfg)
+    raw_jitter = sample_meta.get("joint_jitter", None)
+    if raw_jitter is None:
+        joint_jitter_arr = np.zeros((17,), dtype=np.float32)
+    else:
+        joint_jitter_arr = np.asarray(raw_jitter, dtype=np.float32).reshape(17)
+
+    x = compute_node_features(coords, graph_cfg, joint_jitter=joint_jitter_arr)
     pos = torch.tensor(coords, dtype=torch.float32)
     edge_index = build_canonical_edge_index(graph_cfg)
     edge_attr = compute_edge_features(coords, graph_cfg)
@@ -55,6 +61,9 @@ def build_pyg_graph(
         severity_tier=int(sample_meta.get("severity_tier", 0)),
         perturbation_joint=int(sample_meta.get("perturbation_joint", -1)),
         perturbation_angle_deg=float(sample_meta.get("perturbation_angle_deg", 0.0)),
+        window_jitter=float(sample_meta.get("window_jitter", 0.0)),
+        joint_jitter=torch.from_numpy(joint_jitter_arr.copy()).to(torch.float32),
+        mirrored_to_canonical_leg=bool(sample_meta.get("mirrored_to_canonical_leg", False)),
     )
 
     assert data.num_nodes == 17
@@ -94,7 +103,7 @@ def process_and_save_dataset_graphs(
             continue
 
         try:
-            p_bar, _ = canonicalize_window_3d(window_joints, data_cfg)
+            p_bar, win_stats = canonicalize_window_3d(window_joints, data_cfg)
         except DegenerateSkeletonError:
             continue
 
@@ -111,6 +120,9 @@ def process_and_save_dataset_graphs(
             "severity_tier": 0,
             "perturbation_joint": -1,
             "perturbation_angle_deg": 0.0,
+            "window_jitter": float(win_stats.get("window_jitter", 0.0)),
+            "joint_jitter": win_stats.get("joint_jitter"),
+            "mirrored_to_canonical_leg": bool(win_stats.get("mirrored_to_canonical_leg", False)),
         }
         graph = build_pyg_graph(p_bar, sample_meta, graph_cfg)
         grouped_graphs[split_name].append(graph)
@@ -122,4 +134,47 @@ def process_and_save_dataset_graphs(
         torch.save(grouped_graphs[split_name], out_path)
 
     return grouped_graphs
+
+
+def main() -> None:
+    """CLI entrypoint: rebuild train/val/test PyG graphs from FineFS (or intermediate pickle)."""
+    import json
+    from src.data.harmonization import load_unified_samples, save_unified_samples
+    from src.data.loaders import create_grouped_splits, generate_mock_finefs_samples, load_finefs_samples
+    from src.utils.config import load_all_configs
+
+    cfgs = load_all_configs("configs")
+    data_cfg = cfgs["data"]
+    graph_cfg = cfgs["graph"]
+
+    inter_pkl = Path(data_cfg["paths"]["intermediate_dir"]) / "unified_samples.pkl"
+    raw_dir = Path(data_cfg["paths"]["raw_finefs_dir"])
+    splits_json = Path(data_cfg["paths"]["splits_dir"]) / "grouped_splits.json"
+
+    if inter_pkl.is_file():
+        samples = load_unified_samples(inter_pkl)
+    elif (raw_dir / "skeleton").is_dir() and (raw_dir / "annotation").is_dir():
+        samples, _ = load_finefs_samples(raw_dir, data_cfg)
+        save_unified_samples(samples, inter_pkl)
+    else:
+        samples = generate_mock_finefs_samples(num_performances=30, seed=42)
+
+    if splits_json.is_file():
+        split_dict = json.loads(splits_json.read_text(encoding="utf-8"))
+    else:
+        split_dict = create_grouped_splits(samples, data_cfg)
+        splits_json.parent.mkdir(parents=True, exist_ok=True)
+        splits_json.write_text(json.dumps(split_dict, indent=2), encoding="utf-8")
+
+    grouped = process_and_save_dataset_graphs(samples, split_dict, data_cfg, graph_cfg)
+    print(
+        json.dumps(
+            {k: len(v) for k, v in grouped.items()},
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()
 

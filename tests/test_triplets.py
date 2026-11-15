@@ -150,7 +150,7 @@ def test_pyg_dataloader_on_triplet_dataset(tmp_path: Path) -> None:
     assert batch_a.num_graphs == 8
     assert batch_p.num_graphs == 8
     assert batch_n.num_graphs == 8
-    assert batch_a.x.shape == (8 * 17, 3)
+    assert batch_a.x.shape == (8 * 17, int(graph_cfg["node_feature_dim"]))
     assert batch_alpha.shape == (8,) and batch_alpha.dtype == torch.float32
 
 

@@ -30,6 +30,7 @@ This suite of specifications is designed to guide implementation step-by-step wi
 | **07** | [07_spec_valutazione_baseline_explainability_e_demo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/07_spec_valutazione_baseline_explainability_e_demo.md) | **Evaluation, Geometric Baselines, $Q$ Calibration, Explainability & Demo** | §9, §10, §11, §12, §16.5 | Days 11–13 |
 | **08** | [08_spec_visualizzazione_ux_ui_e_dashboard.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/08_spec_visualizzazione_ux_ui_e_dashboard.md) | **Final Visualization, UX/UI, 3D Dashboard, What-If Lab & Graphical Report** | §9, §10, §11, §12, §14 | Days 12–14 |
 | **09** | [09_piano_implementativo_operativo.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose%20Landmark/sottospecifiche/09_piano_implementativo_operativo.md) | **Operational Implementation Plan ("Vertical Slice & Fail-Fast")** | §17, §18 | Days 1–14 |
+| **10** | [10_spec_revisione_fasi_1_3_e_ricalibrazione.md](file:///c:/MAGISTRALE/DeepLearningBigData/Pose-Landmark/sottospecifiche/10_spec_revisione_fasi_1_3_e_ricalibrazione.md) | **Phases 1–3 Revision: Bilateral Canonicalization, Min-Jitter Windowing, Temporal Node Features & Quantile Metric Recalibration** | §4–§8 (Revision) | Post-Phase 3 |
 
 ---
 

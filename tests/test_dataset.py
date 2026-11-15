@@ -177,7 +177,7 @@ def test_load_real_finefs_samples_and_splits() -> None:
     data_cfg = load_all_configs("configs")["data"]
     raw_dir = Path(data_cfg["paths"]["raw_finefs_dir"])
     if not (raw_dir / "skeleton" / "0.npz").is_file():
-        pytest.skip("Dataset reale FineFS non presente in data/raw/finefs.")
+        pytest.skip("Real FineFS dataset not present in data/raw/finefs.")
 
     samples, report = load_finefs_samples(raw_dir, data_cfg)
     assert report["num_samples_loaded"] == len(samples)

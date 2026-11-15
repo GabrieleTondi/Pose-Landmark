@@ -1,7 +1,7 @@
 # Project Operational Diary — Siamese GATv2 for Action Quality Assessment (Figure Skating)
 
 > **Purpose of this document:** To describe in a detailed, accessible, and technically faithful way **everything that has been designed, implemented, fixed, and verified** from the beginning of the project up to the current state.  
-> This file is maintained and progressively updated at the end of each Phase planned in [sottospecifiche/09_piano_implementativo_operativo.md](sottospecifiche/09_piano_implementativo_operativo.md).
+> This file is maintained and progressively updated at the end of each Phase planned in [specs/09_piano_implementativo_operativo.md](specs/09_piano_implementativo_operativo.md).
 
 ---
 
@@ -11,8 +11,9 @@
 | :--- | :--- | :---: | :--- |
 | **Phase 1** | Infrastructure, YAML Configs, Segmentation, 3D Canonicalization, and PyG Graph Construction | ✅ Completed | `python -m src.utils.env_check` → `ENV_CHECK_OK`; `test_config_and_utils.py`, `test_normalization.py`, `test_graph.py` tests passed |
 | **Phase 2** | `UnifiedSample` Schema, Real FineFS Audit & Loader (`H36M-17` + ISU GOE), Anti-Leakage Splits, and Graph Materialization | ✅ Completed | `1583` real spins loaded and transformed into PyG graphs (`0` discarded); `pytest tests/ -v` → **`22 passed`** |
-| **Phase 3** | Rodrigues Rotation Augmentation, Triplet Sampler, Adaptive Margin Loss, `GATv2` Encoder, and Training | ✅ Completed | `pytest tests/test_triplets.py -v` (`8 passed`); real CUDA training on FineFS (`62` epochs, best epoch `47`, `val_triplet_acc = 0.65`, `embedding_std = 0.289`) + `pytest tests/ -v` → **`30 passed`** |
-| **Phase 4** | Non-Neural Geometric Baselines, AQA Metrics, $Q$ Index Calibration, Evaluation, and Inference | ⏳ Next | Evaluation on `test_graphs.pt` (with `checkpoints/best_model.pt` already generated) → `reports/evaluation_results.json` |
+| **Phase 3 (Run v1 — Baseline)** | Rodrigues Rotation Augmentation, Triplet Sampler, Adaptive Margin Loss, `GATv2` Encoder, and Baseline Training | ✅ Archived | `pytest tests/test_triplets.py -v` (`8 passed`); real CUDA training on FineFS (`62` epochs, best epoch `47`, `val_triplet_acc = 0.6500`, `val_margin_acc = 0.3750`, `embedding_std = 0.289`) + `pytest tests/ -v` → **`30 passed`** |
+| **Spec 10 Revision & Run v2** | Configurable Bilateral Mirroring, Sliding Window Modes, `temporal_extended` Features, Ablations on FineFS, and Calibrated Training v2 | ✅ Completed | [specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md](specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md); `pytest tests/ -v` → **`31 passed`**; Training Run v2 (`80` epochs, best epoch `62`, **`val_triplet_acc = 0.6600`**, **`val_margin_acc = 0.4550`**, **`embedding_std = 0.3434`**) |
+| **Phase 4** | Non-Neural Geometric Baselines, AQA Metrics, $Q$ Index Calibration, Evaluation, and Inference | ⏳ Next | Evaluation on `test_graphs.pt` → `reports/evaluation_results.json` |
 | **Phase 5** | 3D/2D Visualization, Report Figure Export, and Interactive Streamlit Dashboard | ⏳ To do | `pytest tests/ -v` + `python -m src.visualization.export_report_figures` |
 
 ---
@@ -284,63 +285,105 @@ During experimental tuning on [configs/training.yaml](configs/training.yaml) and
 
 ---
 
-### 3.3 Real Training Results on FineFS (`cuda`)
-Running `python -m src.training.train` on **NVIDIA GeForce RTX 3050 Laptop GPU** (`device = "cuda"`) starting from `data/processed/train_graphs.pt` and `data/processed/val_graphs.pt` (with **`test_graphs.pt` completely untouched** for Phase 4):
+### 3.3 Historical Record of Training Run v1 (Baseline 3-Channel Run on FineFS `cuda`)
 
-- **Data used:** `1102` real train graphs + **`2163` synthetic negative graphs** (`721` positives × `3` tiers); **`235` real validation graphs** (`0` synthetic).
-- **GOE thresholds estimated on `train` (`[tau_neg, tau_pos]`):** `Camel Spin: [0.0, 1.5]`, `Layback Spin: [0.0, 1.5]`, `Sit Spin: [0.0, 1.5]`.
-- **Training progress (`62` epochs completed, early stopping triggered 15 epochs after best epoch `47`):**
-  - Epoch `1`: `train_loss = 0.6637`, `train_triplet_acc = 0.5583`, `val_loss = 0.7853`, `val_triplet_acc = 0.4650`, `embedding_std = 0.1028`.
-  - **Best epoch (`47`):**
-    - `train_loss = 0.4849` | `train_triplet_acc = 0.7117` | `train_margin_satisfied_acc = 0.4533` (`mean_d_ap = 1.2028`, `mean_d_an = 1.8667`)
-    - **`val_loss = 0.7290`** | **`val_triplet_acc = 0.6500` (`65.0%`)** | `val_margin_satisfied_acc = 0.3750` (`mean_d_ap = 1.8857`, `mean_d_an = 2.2023`)
-    - **`embedding_std = 0.2889`** (`0.28888118267059326`, active latent space free of collapse)
-  - Final epoch (`62`): `train_loss = 0.4298`, `train_triplet_acc = 0.7250`, `val_loss = 0.7982`, `val_triplet_acc = 0.6050`, `embedding_std = 0.3157`.
-- **Artifacts saved on disk:**
-  - `checkpoints/best_model.pt` (containing `epoch`, `model_state_dict`, `val_loss`, `val_triplet_acc`, `embedding_std`, `goe_thresholds`, `train_cfg`, `graph_cfg`, `data_cfg`)
-  - [reports/training_history.json](reports/training_history.json) (`62` epoch-by-epoch records)
+To preserve a permanent, reproducible baseline record before regenerating graphs with the Spec 10 improvements, all metrics and hyperparameters of **Training Run v1** (`python -m src.training.train` on **NVIDIA GeForce RTX 3050 Laptop GPU**, `device = "cuda"`) are archived below.
+
+#### 3.3.1 Run v1 Configuration Snapshot
+- **Preprocessing & Graph Schema (v1):**
+  - Window selection: fixed midpoint (`mid = len(valid_indices) // 2` on `[20%, 80%]`), `window_size = 9`
+  - Bilateral supporting-leg canonicalization: **disabled** (`canonicalize_supporting_leg = False`)
+  - Node features: `node_feature_mode = "baseline"` (`in_channels = 3`: `[x, y, z]`), `edge_dim = 5`
+- **Dataset Pools & GOE Thresholds (v1):**
+  - `train_graphs.pt`: `1102` real graphs (`721` positives with `GOE >= 1.5`, `66` real negatives with `GOE <= 0.0`, `315` mid) + **`2163` synthetic negative graphs** (`721 × 3` tiers)
+  - `val_graphs.pt`: `235` real graphs (`156` positives with `GOE >= 1.5`, **`8` real negatives** with `GOE <= 0.0` [`4` Camel, `2` Layback, `2` Sit], `71` mid), `0` synthetic
+  - `test_graphs.pt`: `246` real graphs (`165` positives with `GOE >= 1.5`, **`8` real negatives** with `GOE <= 0.0`), untouched
+- **Training & Loss Hyperparameters (v1):**
+  - `hidden_dim = 32`, `embed_dim = 32`, `heads = 4`, `dropout = 0.0`, `normalize_embeddings = False`
+  - `batch_size = 32`, `lr = 1e-3`, `weight_decay = 1e-4`, `max_epochs = 80`, `early_stopping_patience = 15`, `grad_clip_max_norm = 1.0`
+  - `num_train_triplets_per_epoch = 600`, `num_val_triplets = 200`
+  - `tier_rule = "threshold"` (`goe_pos_threshold = 1.5`, `goe_neg_threshold = 0.0`), `positive_top_k = 8`, `real_negative_prob = 0.70`, `self_synth_prob = 0.20`
+  - `adaptive_margins = {1: 0.20, 2: 0.60, 3: 1.00}`, `var_reg_weight = 0.35`, `var_reg_target = 1.0`
+
+#### 3.3.2 Run v1 Epoch-by-Epoch Milestone Table (`62` Epochs Total)
+
+| Milestone / Epoch | `train_loss` | `train_triplet_acc` | `train_margin_acc` | `train_d_ap` / `train_d_an` | `val_loss` | `val_triplet_acc` | `val_margin_acc` | `val_d_ap` / `val_d_an` | `embedding_std` |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Epoch 1** *(Start)* | `0.6637` | `0.5583` | `0.0450` | `0.2891` / `0.3314` | `0.7853` | `0.4650` | `0.0500` | `0.6647` / `0.6075` | `0.1028` |
+| **Epoch 11** *(First >50% val)* | `0.6155` | `0.5850` | `0.1967` | `0.7292` / `0.8775` | `0.7516` | `0.5350` | `0.1400` | `0.9456` / `0.9492` | `0.1509` |
+| **Epoch 22** *(Min `val_loss`)* | `0.5818` | `0.6217` | `0.2767` | `0.9557` / `1.2348` | **`0.6768`** | `0.5700` | `0.1850` | `1.1595` / `1.2431` | `0.1813` |
+| **Epoch 35** *(Mid convergence)* | `0.5142` | `0.6833` | `0.3883` | `1.1328` / `1.6749` | `0.7184` | `0.6250` | `0.3100` | `1.6214` / `1.8590` | `0.2491` |
+| **Epoch 47** *(**Best Checkpoint**)* | `0.4849` | `0.7117` | `0.4533` | `1.2028` / `1.8667` | **`0.7290`** | **`0.6500`** | **`0.3750`** | `1.8857` / `2.2023` | **`0.2889`** |
+| **Epoch 62** *(Early Stop)* | `0.4298` | `0.7250` | `0.4983` | `1.1267` / `1.8743` | `0.7982` | `0.6050` | `0.3950` | `2.0159` / `2.3398` | `0.3157` |
+
+- **Non-learned geometric baselines on the exact same validation triplets (v1):**
+  - `Raw Coord Fro` (Frobenius norm on canonicalized 3D coordinates): **`0.3250`**
+  - `Raw Angle L2` (Euclidean norm on the 32 bone-angle cosines): **`0.5650`**
+  - `SiameseGATv2 (Best Epoch 47)`: **`0.6500`** (`+32.5` pts over `Raw Coord Fro`, `+8.5` pts over `Raw Angle L2`).
+
+#### 3.3.3 Post-Mortem Diagnostic Analysis of Run v1
+1. **What went great:**
+   - **Complete elimination of latent collapse:** whereas the unregularized baseline collapsed to `embedding_std = 0.004` (`val_triplet_acc = 0.405`), Run v1 expanded `embedding_std` smoothly from `0.1028` to `0.2889` at epoch 47 (`0.3157` at epoch 62).
+   - **Metric inversion on validation:** at epoch 1, positive pairs were farther apart than negative pairs on validation (`val_d_ap = 0.6647 > val_d_an = 0.6075`); by epoch 47, the network established a clear positive separation (`val_d_ap = 1.8857 < val_d_an = 2.2023`, gap `+0.3166`), raising `val_margin_satisfied_acc` from `5.0%` to `37.5%`.
+2. **What matched expectations:**
+   - **Physiological late-epoch overfitting:** between epoch 47 and epoch 62, training metrics continued improving (`train_loss: 0.4849 -> 0.4298`, `train_acc: 0.7117 -> 0.7250`) while validation degraded (`val_loss: 0.7290 -> 0.7982`, `val_acc: 0.6500 -> 0.6050`), validating the `patience = 15` early-stopping gate.
+   - **Scale drift between `val_loss` and `val_triplet_acc`:** with `normalize_embeddings: false`, minimum `val_loss` (`0.6768`) occurred at epoch 22 when embeddings were still compact (`embedding_std = 0.1813`), whereas ranking accuracy peaked at epoch 47 (`0.6500`) as embedding norms grew toward `var_reg_target = 1.0`.
+3. **What disappointed & root causes discovered in Phases 1–3:**
+   - **B1 — Bilateral supporting-leg asymmetry (`51.9%` vs `48.1%`):** direct inspection of `train_graphs.pt` revealed that `572 / 1102` spins (`51.9%`) have `left_ankle` (`joint 6`) as the supporting leg on the ice, while `530 / 1102` (`48.1%`) have `right_ankle` (`joint 3`) lower. Without bilateral reflection, left-leg and right-leg spins of the exact same class have swapped node indices (`[1,2,3]` vs `[4,5,6]`), inflating `val_mean_d_ap` to `1.8857` (`+57%` above `train_mean_d_ap = 1.2028`).
+   - **B2 — Misaligned GOE thresholds (`0.0` / `1.5`) vs. real FineFS quantiles (`Q25 = 1.29`, `Q35 = 1.57`, `Q50 = 2.00`, `Q70 = 2.43`):** setting `goe_pos_threshold = 1.5` labeled `66%` of the dataset as `pos`, while `goe_neg_threshold = 0.0` left only **`8` real negatives** in validation (`4` Camel, `2` Layback, `2` Sit), making validation noisy and bottlenecked by negative sample scarcity.
+   - **B3 & B4 — Blind midpoint windowing and discarded `window_jitter`:** taking the fixed midpoint of `[20%, 80%]` often captured position transitions, and discarding `window_jitter` in `builder.py` threw away spin centering/stability information.
+
+---
+
+### 3.4 Spec 10 Revision, Empirical Ablation Study, and Training Run v2 ([specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md](specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md))
+
+#### 3.4.1 Configurable Upgrades Implemented in Code
+To systematically investigate bottlenecks **B1–B5**, we implemented the full modular revision specified in [specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md](specs/10_spec_revisione_fasi_1_3_e_ricalibrazione.md):
+1. **Bilateral Chiral Canonicalization (`src/data/preprocessing.py` & `configs/data.yaml`):** added `mirror_skeleton_left_right()` and configurable `canonicalize_supporting_leg` (performed *after* Yaw Alignment so the sagittal front-back axis $Y$ is never inverted) along with window-consistent `force_mirror` and metadata tracking (`mirrored_to_canonical_leg`).
+2. **Sliding-Window Selection Modes (`src/data/segmentation.py`):** added configurable `selection_mode` supporting both `"center"` (midpoint of `[20%, 80%]`) and `"min_jitter"` (rotation-invariant posture instability minimization).
+3. **Per-Joint Temporal Stability & `"temporal_extended"` Mode (`src/graph/features.py` & `src/graph/builder.py`):** preserved `window_jitter` and per-joint 3D standard deviation `joint_jitter` ($\sigma_i \in \mathbb{R}^{17}$) on every PyG `Data` object, added 6-channel `"temporal_extended"` node feature support `[x, y, z, r_i, sym_i, sigma_i]`, and added the standalone CLI entrypoint `python -m src.graph.builder`.
+
+#### 3.4.2 Empirical Ablation Study on Real FineFS Validation (`train = 1102`, `val = 235`)
+Running controlled ablations on the regenerated FineFS graphs revealed four crucial domain findings and one key optimization bottleneck:
+- **Why `tier_rule: "quantile"` (`0.30 / 0.70`) degraded validation (`val_triplet_acc = 0.5000` vs. `0.6500`):** in FineFS, international competition spins are heavily skewed toward positive execution (`Q30 = +1.43` on Camel, `+1.67` on Layback). Under ISU judging rules, `GOE = +1.5` is a **clean spin without biomechanical errors**. Labeling `GOE <= 1.67` as "Negative" forced the Siamese network to push clean spins away from clean spins, dropping even the non-learned `Raw Angle L2` baseline from `0.5650` to `0.4500`. Keeping `tier_rule: "threshold"` (`0.0 / 1.5`) preserves true biomechanical error semantics.
+- **Why `min_jitter` windowing degraded validation (`val_triplet_acc = 0.4900`):** monocular 3D pose estimation exhibits higher frame-to-frame reconstruction jitter during high-RPM rotation at the center (`50%`) of the spin than during the slower upright entry/exit glide (`20%` / `80%`). Consequently, minimizing raw 3D jitter selected entry/exit transitions rather than the canonical spin hold.
+- **Why `canonicalize_supporting_leg: true` degraded validation (`val_triplet_acc = 0.5250`):** in low or crossed spins (`Sit Spin`, `Layback Spin`), the free ankle and supporting ankle have similar vertical $Z$ coordinates, causing noisy bilateral flips (`46.1%`), and `directed_edge_angle_triplets["0->7"] = [1, 0, 7]` in `configs/graph.yaml` is asymmetric between hips `1` and `4`.
+- **Why 6-channel `temporal_extended` degraded validation (`val_triplet_acc = 0.4800`):** constant `sym_i` (`mean abs = 0.706`) diluted the 3D coordinates `[x, y, z]`, and `joint_jitter` created a train-only shortcut between synthetic and real negatives.
+- **Root Optimization Bottleneck Identified — Premature Early Stopping During `var_reg` Warmup:** during the first `~25` epochs, `AdaptiveTripletMarginLoss` primarily expands `embedding_std` from `0.10` toward `0.25+` under the anti-collapse variance hinge (`var_reg_weight = 0.35`, `var_reg_target = 1.0`). With `early_stopping_patience = 15`, any random early-epoch accuracy spike (e.g., `0.550` at Epoch 11 caused by CUDA `scatter_add_` atomicAdd non-determinism) triggered early stopping at Epoch 26, right before the Epoch 30–65 metric convergence phase. Recalibrating `early_stopping_patience: 30` resolved this bottleneck completely.
+
+#### 3.4.3 Training Run v2 Results (`checkpoints/best_model.pt` & `reports/training_history.json`)
+With clean regenerated graphs (`1102` train, `235` val, `246` test, enriched with `window_jitter`, `joint_jitter`, and `mirrored_to_canonical_leg` attributes) and `early_stopping_patience: 30`, **Training Run v2** completed all `80` epochs on `cuda`, saving the new best checkpoint at **Epoch 62**:
+
+| Milestone / Epoch (Run v2) | `train_loss` | `train_triplet_acc` | `train_margin_acc` | `train_d_ap` / `train_d_an` | `val_loss` | `val_triplet_acc` | `val_margin_acc` | `val_d_ap` / `val_d_an` | `embedding_std` |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Epoch 1** *(Start)* | `0.6637` | `0.5583` | `0.0450` | `0.2891` / `0.3314` | `0.7853` | `0.4650` | `0.0500` | `0.6647` / `0.6075` | `0.1028` |
+| **Epoch 11** *(Warmup peak)* | `0.6100` | `0.5883` | `0.1967` | `0.7194` / `0.8683` | `0.7390` | `0.5500` | `0.1400` | `0.9603` / `0.9764` | `0.1550` |
+| **Epoch 34** *(Mid expansion)* | `0.5404` | `0.6750` | `0.3800` | `1.1057` / `1.6281` | `0.8740` | `0.5850` | `0.3300` | `1.8659` / `2.0287` | `0.3005` |
+| **Epoch 47** *(Matches Run v1)* | `0.4981` | `0.7100` | `0.4267` | `1.2019` / `1.8060` | **`0.7316`** | `0.6500` | `0.3800` | `1.8829` / `2.1827` | `0.2876` |
+| **Epoch 57** *(First 66% val)* | `0.5128` | `0.7000` | `0.4567` | `1.3097` / `1.9615` | `0.7416` | **`0.6600`** | `0.3850` | `1.9985` / `2.3173` | `0.3084` |
+| **Epoch 62** *(**Best Checkpoint v2**)* | **`0.4508`** | **`0.7283`** | **`0.5033`** | `1.2340` / `2.0727` | **`0.7410`** | **`0.6600`** | **`0.4550`** | `2.1504` / `2.7053` | **`0.3434`** |
+| **Epoch 74** *(Max margin acc)* | `0.4681` | `0.7400` | `0.5417` | `1.6323` / `2.6116` | `0.7889` | **`0.6600`** | **`0.4900`** | `2.6792` / `3.2221` | `0.3967` |
+
+#### 3.4.4 Direct Comparison: Run v1 vs. Run v2 (Best Checkpoint)
+| Metric | Non-Neural `Raw Coord Fro` | Non-Neural `Raw Angle L2` | **SiameseGATv2 Run v1 (Ep. 47)** | **SiameseGATv2 Run v2 (Ep. 62)** | **Improvement (v2 vs. v1)** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **`val_triplet_acc`** | `0.3250` | `0.5650` | `0.6500` | **`0.6600`** | **`+1.00%`** (`+9.5` pts over Angle L2) |
+| **`val_margin_satisfied_acc`** | — | — | `0.3750` | **`0.4550`** *(up to `0.4900` at Ep. 74)* | **`+8.00` percentage points** (`+21.3%` rel.) |
+| **Validation Gap $\Delta d_{\text{val}} = d_{AN} - d_{AP}$** | — | — | `+0.3166` | **`+0.5549`** | **`+75.3%` wider metric separation** |
+| **Latent Dispersion (`embedding_std`)** | — | — | `0.2889` | **`0.3434`** | **`+18.9%`** |
+| **`train_triplet_acc` / `train_margin_acc`** | — | — | `0.7117` / `0.4533` | **`0.7283` / `0.5033`** | **`+1.66%` / `+5.00%`** |
 
 ---
 
 ## 4. Verified Automated Test Suite (`pytest tests/ -v`)
 
-At the end of Phase 3 changes, the entire test suite was executed (`30 passed, 148 warnings in 24.89s`, `0` errors, `0` skipped):
+After implementing Spec 10, the full automated test suite passes with **`31 passed` (`0` errors, `0` skipped)**:
 
-- **[tests/test_config_and_utils.py](tests/test_config_and_utils.py)** (`5` tests):
-  - `test_seed_everything_reproducibility`
-  - `test_load_all_configs_valid`
-  - `test_load_all_configs_validation_errors`
-  - `test_hardware_helpers_contract`
-  - `test_env_check_main_writes_profile`
-- **[tests/test_dataset.py](tests/test_dataset.py)** (`7` tests, including direct verification on real files):
-  - `test_unified_sample_validation`
-  - `test_extract_3d_keypoints_shapes`
-  - `test_grouped_splits_zero_leakage`
-  - `test_save_and_load_unified_samples`
-  - `test_inspect_npz_and_audit_directory`
-  - `test_end_to_end_mock_to_pyg_graphs`
-  - `test_load_real_finefs_samples_and_splits`
-- **[tests/test_graph.py](tests/test_graph.py)** (`4` tests):
-  - `test_topology_paired_ordering`
-  - `test_edge_features_geometry`
-  - `test_pyg_data_and_batching`
-  - `test_extended_node_features_preserves_pos`
-- **[tests/test_normalization.py](tests/test_normalization.py)** (`6` tests):
-  - `test_root_centering_at_origin`
-  - `test_unit_torso_scale`
-  - `test_yaw_alignment_along_positive_x`
-  - `test_exact_invariance_to_translation_scale_and_z_rotation`
-  - `test_rotating_spin_window_preservation`
-  - `test_extract_stable_window_filtering`
-- **[tests/test_triplets.py](tests/test_triplets.py)** (`8` tests — Gate 3):
-  - `test_rodrigues_subtree_preserves_bone_lengths`
-  - `test_triplet_dataset_intra_class_and_no_val_augmentation`
-  - `test_adaptive_triplet_loss_backward_and_zero_distance_safety`
-  - `test_pyg_dataloader_on_triplet_dataset`
-  - `test_siamese_shared_weights_and_edge_attr_sensitivity`
-  - `test_attention_weights_extraction_shape`
-  - `test_single_batch_overfit` (tight convergence on both `final_stats` and `eval_stats`: `loss < 0.15` and `triplet_acc >= 0.90`)
-  - `test_run_training_pipeline_end_to_end_mock`
+- **[tests/test_config_and_utils.py](tests/test_config_and_utils.py)** (`5` tests)
+- **[tests/test_dataset.py](tests/test_dataset.py)** (`7` tests, including direct verification on real FineFS files)
+- **[tests/test_graph.py](tests/test_graph.py)** (`4` tests, verifying `"baseline"` 3-ch, `"extended"` 5-ch, and `"temporal_extended"` 6-ch modes)
+- **[tests/test_normalization.py](tests/test_normalization.py)** (`7` tests, including `test_bilateral_supporting_leg_mirror_invariance`)
+- **[tests/test_triplets.py](tests/test_triplets.py)** (`8` tests — Gate 3)
 
 *(Windows environment note: during development, the sandbox blocks direct write operations in workspace paths with `PermissionError` / `RuntimeError`; therefore, steps that write generated files in `data/`, `checkpoints/`, and `reports/` are run with write permissions enabled, while `pytest` runs cleanly thanks to `-p no:cacheprovider` in `pyproject.toml`.)*
 

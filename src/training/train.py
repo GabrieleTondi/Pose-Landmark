@@ -275,16 +275,25 @@ def main() -> None:
     processed_dir = Path(data_cfg["paths"]["processed_dir"])
     train_pt = processed_dir / "train_graphs.pt"
     val_pt = processed_dir / "val_graphs.pt"
+    expected_in_channels = int(train_cfg["model"]["in_channels"])
 
+    loaded_ok = False
     if train_pt.is_file() and val_pt.is_file():
         train_graphs = torch.load(train_pt, map_location="cpu", weights_only=False)
         val_graphs = torch.load(val_pt, map_location="cpu", weights_only=False)
-    else:
-        samples = generate_mock_finefs_samples(num_performances=30, seed=42)
-        split_dict = create_grouped_splits(samples, data_cfg)
-        grouped = process_and_save_dataset_graphs(samples, split_dict, data_cfg, graph_cfg)
-        train_graphs = grouped["train"]
-        val_graphs = grouped["val"]
+        if (
+            len(train_graphs) > 0
+            and train_graphs[0].x.shape[1] == expected_in_channels
+            and hasattr(train_graphs[0], "mirrored_to_canonical_leg")
+        ):
+            loaded_ok = True
+
+    if not loaded_ok:
+        from src.graph.builder import main as rebuild_graphs_main
+
+        rebuild_graphs_main()
+        train_graphs = torch.load(train_pt, map_location="cpu", weights_only=False)
+        val_graphs = torch.load(val_pt, map_location="cpu", weights_only=False)
 
     summary = run_training_pipeline(train_graphs, val_graphs, data_cfg, graph_cfg, train_cfg)
     compact_summary = {k: v for k, v in summary.items() if k != "history"}

@@ -1,5 +1,5 @@
 num_nodes: 17
-node_feature_mode: "baseline"   # "baseline" -> shape (17, 3) | "extended" -> shape (17, 5)
+node_feature_mode: "baseline"   # "baseline" -> (17, 3) | "extended" -> (17, 5) | "temporal_extended" -> (17, 6)
 node_feature_dim: 3
 edge_feature_dim: 5
 epsilon: 1.0e-8

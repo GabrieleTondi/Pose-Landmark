@@ -87,25 +87,31 @@ def test_pyg_data_and_batching() -> None:
     loader = DataLoader(graphs, batch_size=4, shuffle=False)
     batch = next(iter(loader))
 
-    assert batch.x.shape == (68, 3)
+    expected_dim = int(graph_cfg["node_feature_dim"])
+    assert batch.x.shape == (68, expected_dim)
     assert batch.pos.shape == (68, 3)
     assert batch.edge_index.shape == (2, 128)
     assert batch.edge_attr.shape == (128, 5)
 
 
 def test_extended_node_features_preserves_pos() -> None:
-    graph_cfg = copy.deepcopy(load_all_configs("configs")["graph"])
-    graph_cfg["node_feature_mode"] = "extended"
     p_bar = _sample_canonical_pose()
 
-    meta = {
-        "sample_id": "mock_ext_001",
-        "performance_id": "perf_001",
-        "element_label": "Sit Spin",
-        "goe": 1.5,
-    }
-    data = build_pyg_graph(p_bar, meta, graph_cfg)
+    for mode, expected_dim in (("baseline", 3), ("extended", 5), ("temporal_extended", 6)):
+        graph_cfg = copy.deepcopy(load_all_configs("configs")["graph"])
+        graph_cfg["node_feature_mode"] = mode
+        graph_cfg["node_feature_dim"] = expected_dim
+        meta = {
+            "sample_id": f"mock_{mode}_001",
+            "performance_id": "perf_001",
+            "element_label": "Sit Spin",
+            "goe": 1.5,
+            "joint_jitter": np.linspace(0.01, 0.05, 17, dtype=np.float32),
+        }
+        data = build_pyg_graph(p_bar, meta, graph_cfg)
 
-    assert data.x.shape == (17, 5)
-    assert data.pos.shape == (17, 3)
-    assert torch.allclose(data.x[:, 0:3], data.pos, atol=1e-6)
+        assert data.x.shape == (17, expected_dim)
+        assert data.pos.shape == (17, 3)
+        assert torch.allclose(data.x[:, 0:3], data.pos, atol=1e-6)
+        if mode == "temporal_extended":
+            assert torch.allclose(data.x[:, 5], data.joint_jitter, atol=1e-6)

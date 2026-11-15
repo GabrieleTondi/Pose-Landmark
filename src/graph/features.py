@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
@@ -6,11 +6,16 @@ import torch
 from src.graph.topology import get_directed_edge_list
 
 
-def compute_node_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch.Tensor:
+def compute_node_features(
+    P_bar: np.ndarray,
+    graph_cfg: Dict[str, Any],
+    joint_jitter: Optional[np.ndarray] = None,
+) -> torch.Tensor:
     """
     Compute node features from P_bar of shape (17, 3).
     - If graph_cfg['node_feature_mode'] == 'baseline': returns Tensor (17, 3) float32 [x, y, z].
     - If graph_cfg['node_feature_mode'] == 'extended': returns Tensor (17, 5) float32 [x, y, z, r_i, sym_i].
+    - If graph_cfg['node_feature_mode'] == 'temporal_extended': returns Tensor (17, 6) float32 [x, y, z, r_i, sym_i, sigma_i].
     """
     coords = np.asarray(P_bar, dtype=np.float32)
     assert coords.shape == (17, 3) and np.isfinite(coords).all(), (
@@ -23,19 +28,29 @@ def compute_node_features(P_bar: np.ndarray, graph_cfg: Dict[str, Any]) -> torch
         assert tensor.shape == (17, 3) and torch.isfinite(tensor).all()
         return tensor
 
-    if mode == "extended":
+    if mode in ("extended", "temporal_extended"):
         radii = np.linalg.norm(coords, axis=-1, keepdims=True).astype(np.float32)
         sym = np.asarray(
             graph_cfg["joint_symmetry"],
             dtype=np.float32,
         ).reshape(17, 1)
-        extended = np.concatenate([coords, radii, sym], axis=-1).astype(np.float32)
-        tensor = torch.from_numpy(extended).to(torch.float32)
-        assert tensor.shape == (17, 5) and torch.isfinite(tensor).all()
+        if mode == "extended":
+            extended = np.concatenate([coords, radii, sym], axis=-1).astype(np.float32)
+            tensor = torch.from_numpy(extended).to(torch.float32)
+            assert tensor.shape == (17, 5) and torch.isfinite(tensor).all()
+            return tensor
+
+        if joint_jitter is None:
+            sigma = np.zeros((17, 1), dtype=np.float32)
+        else:
+            sigma = np.asarray(joint_jitter, dtype=np.float32).reshape(17, 1)
+        temp_ext = np.concatenate([coords, radii, sym, sigma], axis=-1).astype(np.float32)
+        tensor = torch.from_numpy(temp_ext).to(torch.float32)
+        assert tensor.shape == (17, 6) and torch.isfinite(tensor).all()
         return tensor
 
     raise ValueError(
-        f"Unsupported node_feature_mode='{mode}'. Allowed values: 'baseline', 'extended'."
+        f"Unsupported node_feature_mode='{mode}'. Allowed values: 'baseline', 'extended', 'temporal_extended'."
     )
 
 

@@ -5,6 +5,7 @@ from src.data.preprocessing import (
     DegenerateSkeletonError,
     canonicalize_frame_3d,
     canonicalize_window_3d,
+    mirror_skeleton_left_right,
 )
 from src.data.segmentation import extract_stable_window
 from src.utils.config import load_all_configs
@@ -97,7 +98,7 @@ def test_rotating_spin_window_preservation() -> None:
     base_pose = _make_realistic_h36m17_pose()
     expected_canonical, _ = canonicalize_frame_3d(base_pose, cfg)
 
-    angles_deg = np.arange(0, 360, 40, dtype=np.float64)  # 9 frame -> 360 gradi completi
+    angles_deg = np.arange(0, 360, 40, dtype=np.float64)  # 9 frames -> full 360 degrees
     assert len(angles_deg) == 9
     frames = []
     for deg in angles_deg:
@@ -108,11 +109,32 @@ def test_rotating_spin_window_preservation() -> None:
     p_bar, stats = canonicalize_window_3d(window_joints, cfg)
     assert stats["num_valid_frames"] == 9
     assert stats["window_jitter"] < 1e-5
+    assert stats["joint_jitter"].shape == (17,)
+    assert float(np.max(stats["joint_jitter"])) < 1e-5
     assert np.allclose(p_bar, expected_canonical, atol=1e-5)
 
     zero_skeleton = np.zeros((17, 3), dtype=np.float32)
     with pytest.raises(DegenerateSkeletonError):
         canonicalize_frame_3d(zero_skeleton, cfg)
+
+
+def test_bilateral_supporting_leg_mirror_invariance() -> None:
+    cfg = load_all_configs("configs")["data"]
+    cfg["canonicalization"]["canonicalize_supporting_leg"] = True
+    left_leg_pose = _make_realistic_h36m17_pose()
+    right_leg_pose = mirror_skeleton_left_right(left_leg_pose, cfg)
+    rot = _rotation_matrix_z(0.85)
+    right_leg_rotated = (2.3 * (right_leg_pose.astype(np.float64) @ rot.T) + np.array([3.0, -4.0, 1.5])).astype(
+        np.float32
+    )
+
+    canon_left, stats_left = canonicalize_frame_3d(left_leg_pose, cfg)
+    canon_right, stats_right = canonicalize_frame_3d(right_leg_rotated, cfg)
+
+    assert stats_left["mirrored_to_canonical_leg"] is False
+    assert stats_right["mirrored_to_canonical_leg"] is True
+    assert np.allclose(canon_left, canon_right, atol=1e-5)
+    assert float(canon_right[6, 2]) < float(canon_right[3, 2])
 
 
 def test_extract_stable_window_filtering() -> None:

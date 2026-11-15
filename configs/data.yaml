@@ -22,6 +22,7 @@ windowing:
   trim_ratio_start: 0.20
   trim_ratio_end: 0.20
   min_keypoint_confidence: 0.20
+  selection_mode: "center"      # "center" captures the true spin hold; "min_jitter" biases toward slow entry/exit glides
 
 canonicalization:
   horizontal_axes: [0, 1]       # Horizontal axes: 0=X, 1=Y (Z verified as vertical on FineFS)
@@ -31,6 +32,15 @@ canonicalization:
   # Indices for H36M-17 standard verified on FineFS:
   pelvis_indices: [4, 1]        # [left_hip, right_hip]
   shoulder_indices: [11, 14]    # [left_shoulder, right_shoulder]
+  canonicalize_supporting_leg: false
+  ankle_indices: [6, 3]         # [left_ankle, right_ankle]
+  symmetric_joint_pairs:
+    - [1, 4]    # right_hip <-> left_hip
+    - [2, 5]    # right_knee <-> left_knee
+    - [3, 6]    # right_ankle <-> left_ankle
+    - [14, 11]  # right_shoulder <-> left_shoulder
+    - [15, 12]  # right_elbow <-> left_elbow
+    - [16, 13]  # right_wrist <-> left_wrist
 
 splits:
   train_ratio: 0.70

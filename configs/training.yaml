@@ -13,7 +13,7 @@ training:
   lr: 1.0e-3
   weight_decay: 1.0e-4
   max_epochs: 80
-  early_stopping_patience: 15
+  early_stopping_patience: 30
   grad_clip_max_norm: 1.0
   num_train_triplets_per_epoch: 600
   num_val_triplets: 200

@@ -220,12 +220,20 @@ def generate_synthetic_negatives(
                 p_pert = p_pert + noise
 
             try:
-                p_pert_canon, _ = canonicalize_frame_3d(p_pert, data_cfg)
+                p_pert_canon, _ = canonicalize_frame_3d(p_pert, data_cfg, force_mirror=False)
             except DegenerateSkeletonError:
                 p_pert_no_noise = rotate_kinematic_subtree(
                     base_pos, joint_idx, child_idx, axis, angle_deg, graph_cfg
                 )
-                p_pert_canon, _ = canonicalize_frame_3d(p_pert_no_noise, data_cfg)
+                p_pert_canon, _ = canonicalize_frame_3d(
+                    p_pert_no_noise, data_cfg, force_mirror=False
+                )
+
+            parent_jj = getattr(g, "joint_jitter", None)
+            if parent_jj is not None:
+                synth_jj = parent_jj.detach().cpu().numpy().astype(np.float32).copy()
+            else:
+                synth_jj = np.zeros((17,), dtype=np.float32)
 
             suffix = f"t{tier}" if num_per_pos <= 3 else f"t{tier}_{rep_idx}"
             meta = {
@@ -241,6 +249,9 @@ def generate_synthetic_negatives(
                 "severity_tier": int(tier),
                 "perturbation_joint": int(joint_idx),
                 "perturbation_angle_deg": float(angle_deg),
+                "window_jitter": float(np.sqrt(np.mean(synth_jj ** 2))),
+                "joint_jitter": synth_jj,
+                "mirrored_to_canonical_leg": bool(getattr(g, "mirrored_to_canonical_leg", False)),
             }
             synth_graph = build_pyg_graph(p_pert_canon, meta, graph_cfg)
             synthetic_graphs.append(synth_graph)
