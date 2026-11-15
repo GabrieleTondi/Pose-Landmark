@@ -1,0 +1,39 @@
+paths:
+  raw_finefs_dir: "data/raw/finefs"
+  raw_mmfs_dir: "data/raw/mmfs"
+  intermediate_dir: "data/intermediate"
+  processed_dir: "data/processed"
+  splits_dir: "data/splits"
+  reports_dir: "reports"
+  checkpoints_dir: "checkpoints"
+
+dataset:
+  primary_dataset: "finefs"
+  enable_mmfs: false
+  skeleton_convention: "h36m17"  # Verificato su FineFS data/raw/finefs/skeleton/*.npz (Human3.6M 17-joint)
+  target_elements:
+    - "Camel Spin"
+    - "Sit Spin"
+    - "Layback Spin"
+
+windowing:
+  window_size: 9
+  min_valid_frames: 5
+  trim_ratio_start: 0.20
+  trim_ratio_end: 0.20
+  min_keypoint_confidence: 0.20
+
+canonicalization:
+  horizontal_axes: [0, 1]       # Assi orizzontali: 0=X, 1=Y (verificato Z verticale su FineFS)
+  vertical_axis: 2              # Asse verticale: 2=Z
+  scale_epsilon: 1.0e-4
+  yaw_epsilon: 1.0e-4
+  # Indici per standard H36M-17 verificati su FineFS:
+  pelvis_indices: [4, 1]        # [left_hip, right_hip]
+  shoulder_indices: [11, 14]    # [left_shoulder, right_shoulder]
+
+splits:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
